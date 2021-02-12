@@ -31,9 +31,25 @@ header-includes: \input{../teX-preamble/preamble}
     $\hat{\bar{y}} = \bar{y}_s + \beta(\bar{x}-\bar{x}_s)$
     - We get $\beta$ by a regression of leaf area on weight in the sample.
 
+# Efficiency from using covariates
+
+```
+X1 <- rnorm(N_pop, 3, 1)
+X1_demeaned <- X1 - mean(X1)
+Y0 <- abs(rnorm(N_pop, 5, 2)) + 3*X1 #+ 0.4*X1^2
+Y1 <- Y0 + rnorm(N_pop, 3, 1)
+TE <- Y1 - Y0
+ATE <- mean(TE)
+D <- rbinom(N_pop, 1, 0.3)
+Y <- D*Y1 + (1-D)*Y0
+reg_formula1 <- paste0(Y.name, "~", D.name)
+reg_formula2 <- paste0(Y.name, "~", D.name, "+", X1.name)
+reg_formula3 <- paste0(Y.name, "~", D.name, "*", X2.name)
+
+```
 
 # Efficiency from using covariates
-```{r cov, echo=FALSE}
+```{r cov, echo=FALSE, message=FALSE, warning=FALSE}
 require(sandwich)
 N_pop <- 100
 X1 <- rnorm(N_pop, 3, 1)
@@ -76,20 +92,20 @@ for (i in 1:nboots){
   se_lm_est_lin[i] <- sqrt(vcovHC(reg3, type = "HC2")[2, 2])
 
 }
-plot(density(lm_est), main = "Bias of the group-mean-difference estimator", xlab = "ATE estimates", xlim = c(-2, 8))
+plot(density(lm_est), main = "Estimate of the group-mean-difference estimator", xlab = "ATE estimates", xlim = c(-2, 8))
 abline(v = ATE, lty = 2)
 ```
 
 
 # Efficiency from using covariates
 ```{r cov1, echo=FALSE}
-plot(density(lm_est_cov), main = "Bias of the estimator with covariate adjustment", xlab = "ATE estimates", xlim = c(-2, 8))
+plot(density(lm_est_cov), main = "Estimate of the estimator with covariate adjustment", xlab = "ATE estimates", xlim = c(-2, 8))
 abline(v = ATE, lty = 2)
 ```
 
 # Efficiency from using covariates
 ```{r cov2, echo=FALSE}
-plot(density(lm_est_lin), main = "Bias of the Lin's regression", xlab = "ATE estimates", xlim = c(-2, 8))
+plot(density(lm_est_lin), main = "Estimate of the Lin's regression", xlab = "ATE estimates", xlim = c(-2, 8))
 abline(v = ATE, lty = 2)
 ```
 
@@ -106,6 +122,22 @@ cat("The average of reg estimates (Lin) is", mean(lm_est_lin), "\n")
 cat("The average SE of reg estimates (Lin) is", mean(se_lm_est_lin), "\n")
 ```
 
+# Partial regression
+
+```
+  reg_formula1 <- paste0(Y.name, "~", D.name, "+", X1.name)
+  reg_formula2 <- paste0(D.name, "~", X1.name)
+  reg_formula3 <- paste0(Y.name, "~", X1.name)
+
+  reg1 <- lm(as.formula(reg_formula1), data = data.pop)
+  reg2 <- lm(as.formula(reg_formula2), data = data.pop)
+  reg3 <- lm(as.formula(reg_formula3), data = data.pop)
+
+  lm_est[i] <- coefficients(reg1)[2]
+  residual_Y <- residuals(reg3)
+  residual_D <- residuals(reg2)
+  lm_est_par[i] <- coefficients(lm(residual_Y~residual_D))[2]
+```
 
 # Partial regression
 ```{r cov4, echo=FALSE}
@@ -140,14 +172,27 @@ for (i in 1:nboots){
   residual_D <- residuals(reg2)
   lm_est_par[i] <- coefficients(lm(residual_Y~residual_D))[2]
 }
-plot(density(lm_est), main = "Bias of the regression estimator", xlab = "ATE estimates", xlim = c(-2, 8))
+plot(density(lm_est), main = "Estimate of the regression estimator", xlab = "ATE estimates", xlim = c(-2, 8))
 abline(v = ATE, lty = 2)
 ```
 
 # Partial regression
 ```{r cov5, echo=FALSE}
-plot(density(lm_est_par), main = "Bias of the partial regression", xlab = "ATE estimates", xlim = c(-2, 8))
+plot(density(lm_est_par), main = "Estimate of the partial regression", xlab = "ATE estimates", xlim = c(-2, 8))
 abline(v = ATE, lty = 2)
+```
+
+# Bias due to confounders
+
+```
+N_pop <- 100
+X1 <- rnorm(N_pop, 3, 1)
+Y0 <- abs(rnorm(N_pop, 5, 2)) + 3*X1 + 0.6*X1^2
+Y1 <- Y0 + rnorm(N_pop, 3, 1)
+TE <- Y1 - Y0
+ATE <- mean(TE)
+pscore <- exp(-3 + 0.2*X1 + 0.1*X1^2)/(exp(-3 + 0.2*X1 + 0.1*X1^2)+1)
+D <- rbinom(N_pop, 1, pscore)
 ```
 
 # Bias due to confounders
@@ -169,7 +214,7 @@ for (i in 1:nboots){
   ATE_est[i] <- coefficients(lm(Y~D, data.pop))[2]
   # ATE_est_cov[i] <- coefficients(lm(Y~D+X1, data.pop))[2]
 }
-plot(density(ATE_est), main = "Bias of the group-mean-difference estimator", xlab = "ATE estimates", xlim = c(-4, 16))
+plot(density(ATE_est), main = "Estimate of the group-mean-difference estimator", xlab = "ATE estimates", xlim = c(-4, 16))
 abline(v = ATE, lty = 2, col = "red")
 abline(v = mean(ATE_est), lty = 3)
 ```
@@ -193,7 +238,7 @@ for (i in 1:nboots){
   # ATE_est[i] <- coefficients(lm(Y~D, data.pop))[2]
   ATE_est[i] <- coefficients(lm(Y~D+X1, data.pop))[2]
 }
-plot(density(ATE_est), main = "Bias of the regression estimator", xlab = "ATE estimates", xlim = c(-4, 16))
+plot(density(ATE_est), main = "Estimate of the regression estimator", xlab = "ATE estimates", xlim = c(-4, 16))
 abline(v = ATE, lty = 2, col = "red")
 abline(v = mean(ATE_est), lty = 3)
 ```
@@ -217,7 +262,7 @@ for (i in 1:nboots){
   # ATE_est[i] <- coefficients(lm(Y~D, data.pop))[2]
   ATE_est[i] <- (sum(Y*D/pscore) - sum(Y*(1-D)/(1-pscore)))/N_pop
 }
-plot(density(ATE_est), main = "Bias of the Horvitz-Thompson estimator", xlab = "ATE estimates", xlim = c(-4, 16))
+plot(density(ATE_est), main = "Estimate of the Horvitz-Thompson estimator", xlab = "ATE estimates", xlim = c(-4, 16))
 abline(v = ATE, lty = 2, col = "red")
 abline(v = mean(ATE_est), lty = 3)
 ```
