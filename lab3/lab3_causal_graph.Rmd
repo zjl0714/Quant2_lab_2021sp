@@ -174,8 +174,19 @@ independence. If the distribution is also faithful to the graph, then conditiona
 
 - It should be intuitive to think about some biases:
   - selection bias (we conditional on $selection=1$)
-  - post-treatment bias (we block the causal chain)
   - Bias amplification (one case: we control parents but not confounder)
+  
+\pause  
+  - post-treatment bias (we block the causal chain)
+  
+$$
+\begin{aligned}
+  & E(Y(1)|D=1, X(1)=x) - E(Y(0)|D=0, X(0)=x) \\
+=  & E(Y(1)| X(1)=x) - E(Y(0)| X(0)-x)\ \text{ by random assignment}\\
+ = & \int y_1 f_{X(1)}(y_1|x)dy_1 - \int y_0 f_{X(0)}(y_0|x)dy_0\\
+ \neq  & E(Y(1)-Y(0)|X=x)
+\end{aligned}
+$$
 
 # Post-treatment Variables
 
