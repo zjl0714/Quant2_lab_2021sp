@@ -193,6 +193,7 @@ $$
 - But (only) sometimes it can be useful: **Frontdoor Criterion**
 
 ![](fig5a.png){height=30%}
+
 - $D$:smoking; $X$:tar deposit; $Y$:lung cancer
 - unobserved $U$: smoking gene
 
