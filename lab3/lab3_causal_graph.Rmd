@@ -210,29 +210,31 @@ $$
 
 - They share some common characteristics, however, Imbens argues that
 \pause
-  - Manipulation problem is a concern.
-    - There is no intervention $P(Y|do(gender=female))$
-    - Hard to access the confounder
+
+- Manipulation problem is a concern.
+  - There is no intervention $P(Y|do(gender=female))$
+  - Hard to access the confounder
     
 \pause
-  - Instrumental variables and compliers
-    - some of the key assumptions in instrumental
+- Instrumental variables and compliers
+  - some of the key assumptions in instrumental
 variables settings are not naturally captured in DAGs,     - the identification of the Local Average Treatment Effect (LATE) is not easily derived in a DAG approach
 
 \pause
-  - Simultaneity
-    - by definition, DAG doesn't allow simultaneity
+- Simultaneity
+  - by definition, DAG doesn't allow simultaneity
 
 \pause
-  - Conditioning set and confounders (what are they)
-  - Counterfactuals
-    - For PO, you need model assumption
-    - For DAG, you need a structrual assumption
+- Conditioning set and confounders (what are they)
+- Counterfactuals
+  - For PO, you need model assumption
+  - For DAG, you need a structrual assumption
     
     
 # Further readings:
 
-- Elwert, Felix. 2013. "Graphical Causal Models." Handbook of Causal Analysis for Social Research.
-- [Glynn, Adam N., and Konstantin Kashin, 2018, "Front-door versus back-door adjustment with unmeasured confounding: Bias formulas for front-door and hybrid adjustments with application to a job training program." Journal of the American Statistical Association](https://doi.org/10.1080/01621459.2017.1398657)
+- Elwert, Felix. 2013. "Graphical Causal Models." Handbook of Causal Analysis for Social Research. 
+- Pearl, Judea, 2009. Causality. 
+- Pearl, Judea, and Dana Mackenzie, 2018, The book of why: the new science of cause and effect. 
 - [Guido W. Imbens, 2020, "Potential Outcome and Directed Acyclic Graph Approaches to Causality: Relevance for Empirical Practice in Economics"](https://arxiv.org/abs/1907.07271)
 
