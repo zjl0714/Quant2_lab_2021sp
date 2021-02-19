@@ -95,6 +95,7 @@ $$
 
 - Consider paths from $X$ to $Y$, and we have a conditioning set $\mathcal{S}$.
 - We say If $\mathcal{S}$ **blocks** every undirected path from $X$ to $Y$, then they must be conditionally independent given $\mathcal{S}$. 
+\pause
 - An unblocked path is also called **active**.
 - A path is active when every variable along the path is active; if even one variable is blocked
 by $\mathcal{S}$, the whole path is blocked.
@@ -105,7 +106,8 @@ by $\mathcal{S}$, the whole path is blocked.
   - $Z$ is a collider along the path, and in $\mathcal{S}$; or,
   - $Z$ is a descendant of a collider, and in $\mathcal{S}$; or
   - $Z$ is not a collider, and not in $\mathcal{S}$.
-  
+   
+\pause
 - Turned around, $Z$ is blocked or de-activated by conditioning on $\mathcal{S}$ if
   - $Z$ is a non-collider and in $\mathcal{S}$; or
   - $Z$ is collider, and neither $Z$ nor any of its descendants is in $\mathcal{S}$
@@ -162,7 +164,7 @@ independence. If the distribution is also faithful to the graph, then conditiona
   - no node in $\mathcal{S}$ is a descendant of $D$, and
   - $\mathcal{S}$ blocks (d-separates) every path between $D$ and $Y$ that contain an arrow into $D$ (so-called “backdoor paths”).
 
-- Theorem: The total causal effect of $D$ on $Y$ is non-parametrically identifiable given $\mathcal{S}$ if $\mathcal{S}$} meets the backdoor criterion.
+- Theorem: The total causal effect of $D$ on $Y$ is non-parametrically identifiable given $\mathcal{S}$ if $\mathcal{S}$ meets the backdoor criterion.
 
 \pause
 
