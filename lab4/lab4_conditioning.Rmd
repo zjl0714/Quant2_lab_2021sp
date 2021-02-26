@@ -461,7 +461,7 @@ $$
 
 
 # Cinelli and Hazlett (2020)
-```{r sen3, echo=FALSE, fig.height=5, message=FALSE}
+```{r sen3, echo=FALSE, fig.height=3, message=FALSE}
 library(sensemakr)
 data("darfur")
 
@@ -478,7 +478,7 @@ plot(sensitivity)
 
 
 # Cinelli and Hazlett (2020)
-```{r sen4, echo=FALSE, message=FALSE,fig.height=5}
+```{r sen4, echo=FALSE, message=FALSE,fig.height=3}
 sense_ll <- sensemakr(ymodel, treatment = "treat",
                       benchmark_covariates = "nodegree",
                                kd = 1:3)
