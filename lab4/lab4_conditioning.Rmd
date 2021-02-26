@@ -1,0 +1,486 @@
+---
+title: "Quant II"
+subtitle: "Lab 4: Conditioning: Matching, Weighing, and Sensitivity Analysis"
+author: "Junlong Aaron Zhou"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+    beamer_presentation:
+        theme: "CambridgeUS"
+        colortheme: "beaver"
+header-includes: \input{../teX-preamble/preamble}
+
+---
+
+
+# Outline
+- Blocking and rerandomization
+- Matching   
+    - Why matching?
+    - Various algorithms
+    - Asymptotics of matching
+- IPW   
+    - Why do we love/hate it?
+    - Covariate balancing
+- What if confounders are unobservable?
+    - Placebo
+    - Sensitivity
+    
+# Blocking
+- Blocking: covariates adjustment before assignment
+- Usually results in more efficient estimates
+- Easier to get balance in covariates
+- What is the optimal blocking algorithm?
+
+# Rerandomization
+- What if your first draw leads to imbalance in covariates?
+\pause
+- Rubin: draw the assignment again and do not tell anybody!
+\pause
+- But what is the distribution of the ATE estimates?
+- Ding, Li and Rubin (2017): A truncated Gaussian distribution
+- Rerandomization can be combined with regression adjustment
+
+# Why matching?
+- To approximiate a blocking experiment
+- To get rid of model dependence   
+Matching is completely nonparametric: $\hat{\tau}_{i} = Y_i - \sum_{\mathcal{M}_i}Y_{i \in \mathcal{M}_i}$.
+\pause
+- To estimate heterogeneous treatment effects  
+Straightforward.
+\pause
+- To guarantee common support (positivity)  
+Suppose we estimate $\tau$ using Lin's approach, then,
+$$\hat{\tau} = \bar{Y}_1 - \bar{Y}_0 - (\frac{N_0}{N_0 + N_1} * \hat{\beta_1} + \frac{N_1}{N_0 + N_1} * \hat{\beta_0})'(\bar{X}_1 - \bar{X}_0)$$
+(Imbens and Wooldridge, 2009)   
+Bias disappears only when $\bar{X}_1 = \bar{X}_0$ (LaLonde, 1986). 
+\pause
+- Matching cannnot help you get unconfoundedness.
+
+# Basic steps
+1. Choose a distance metric
+\pause
+2. Find matches on your set of covariates/propensity scores, and get rid of non-matches \pause (Warning!)
+\pause
+3. Check balance in your matched data set
+\pause
+4. Repeat these steps until your set exhibits acceptable balance
+\pause
+5. Calulate the ATT/ATE on your matched dataset 
+
+# An example
+- Boyd et al. (2010)
+- The effect of gender on decision making
+- Unit of analysis: the appellate court case
+- Treatment: whether there is at least one female in the three judge panel
+- Covariates: median ideology, median age, one racial minority, indicator for ideological direction of lower court's decision, indicator for whether a majority of the judges were nominated by Republicans, indicator for whether a majority of the judges on the panel had judicial experience prior to their nomination
+
+```{r data-loading, echo=FALSE}
+# Set up data
+d <- read.csv("title7_race.csv")
+d$LiberalOutcome <- as.integer(d$case_outcome == 'Liberal')
+d$Female <- as.integer(d$gender_judge == 'Female')
+d$LiberalLowerDirection <- as.integer(d$lower_dir == 'Liberal')
+d$Republican <- as.integer(d$party_judge == 'Republican')
+d$Experienced <- as.integer(d$jud_experience == 'Experienced')
+d$Minority <- as.integer(d$race_judge != 'White')
+d$jcs <- d$jcs - min(d$jcs)
+d$confirm_yr <- d$confirm_yr - min(d$confirm_yr)
+d$Age <- d$dec_year - d$year_birth
+
+case.order <- unique(d$order) # collapse covariates on cases
+median.ideo <- unlist(lapply(case.order, function(x) median(d[d$order == x,]$jcs)))
+repub.majority <- as.integer(unlist(lapply(case.order, function(x) sum(d[d$order == x,]$Republican) > 1)))
+has.minority <- as.integer(unlist(lapply(case.order, function(x) sum(d[d$order == x,]$Minority) > 0)))
+maj.experienced <- as.integer(unlist(lapply(case.order, function(x) sum(d[d$order == x,]$Experienced) > 1)))
+has.woman <- as.integer(unlist(lapply(case.order, function(x) sum(d[d$order ==x,]$gender_judge == 'Female') > 0)))
+liberal.lower.direction <- unlist(lapply(case.order, function(x) unique(d[d$order == x,]$LiberalLowerDirection)))
+median.age <- unlist(lapply(case.order, function(x) median(d[d$order == x,]$Age)))
+median.confirmation.year <- unlist(lapply(case.order, function(x) median(d[d$order == x,]$confirm_yr)))
+ideo.range <- unlist(lapply(case.order, function(x) diff(range(d[d$order == x,]$jcs))))
+minorityXmedianIdeo <- median.ideo * has.minority
+liberalOutcome <- unlist(lapply(case.order, function(x) unique(d[d$order == x,]$LiberalOutcome)))
+
+# 6 covariates in total
+d.new <- data.frame(
+  case.order = case.order,
+  median.ideo = median.ideo,
+  repub.majority = repub.majority,
+  has.minority = has.minority,
+  maj.experienced = maj.experienced,
+  median.age = median.age,
+  liberal.lower.direction = liberal.lower.direction,
+  has.woman = has.woman,
+  liberalOutcome = liberalOutcome)
+
+trt <- d.new$has.woman == 1
+
+means <- apply(d.new[,-8], 2, function(x) tapply(x, trt, mean))
+sds <- apply(d.new[-8], 2, function(x) tapply(x, trt, sd))
+t.p <- apply(d.new[, -8], 2, function(x) t.test(x[trt], x[!trt])$p.value)
+suppressWarnings(ks.p <- apply(d.new[, -8], 2, function(x) ks.test(x[trt], x[!trt])$p.value))
+rownames(means) <- rownames(sds) <- c("Treated", "Control")
+```
+
+# View Initial Balance
+\footnotesize
+```{r}
+initial.balance <- round(t(rbind(means,t.p,ks.p)),digits=3)[c(2:8),]
+initial.balance
+```
+
+# Propensity score matching
+- Pros: reduce the number of dimensions
+- Cons: may not use information in the most efficient way   
+\footnotesize
+```{r p-score, echo=FALSE, fig.height=4, fig.width=7}
+p.model <- glm(trt ~ median.ideo + median.age + 
+                 repub.majority + has.minority +
+                 maj.experienced + 
+                 liberal.lower.direction,
+               d.new, family = "binomial")
+
+pscore.logit <-  predict(p.model, type = "response")
+hist(pscore.logit)
+```
+
+# Propensity score matching
+```{r ps-matching, echo=FALSE, fig.height=5, fig.width=7}
+d.ctl <- subset(d.new, has.woman == 0)
+pscore.logit.ctl <- pscore.logit[!trt]
+pscore.logit.trt <- pscore.logit[trt]
+
+d.trt <- subset(d.new, has.woman == 1)
+matches <- sapply(pscore.logit.trt, function(x) which.min(abs(pscore.logit.ctl-x)))
+d.trt <- rbind(d.trt, d.ctl[matches, ])
+pm.logit.mod <- lm(liberalOutcome ~ has.woman + median.ideo + median.age + repub.majority + has.minority +maj.experienced + 
+                     liberal.lower.direction, d.trt)
+N <- length(matches)
+plot(c(pscore.logit.trt, pscore.logit.ctl[matches]), jitter(rep(c(1, 0), c(N,N))), axes = F, ylab= "Treatment and Control", 
+     xlab = "Propensity Score")
+axis(1)
+```
+
+# Nearest Neighbor Matching
+- Approximate a blocking experiment
+- You can also use `MatchIt` 
+\footnotesize
+```{r NN-formula, echo=FALSE, message=FALSE}
+library(MatchIt)
+matching.formula <- as.formula('has.woman ~ 
+    median.ideo + median.age + repub.majority +
+     has.minority + maj.experienced + liberal.lower.direction')
+```
+
+# Nearest Neighbor Matching
+\footnotesize
+```{r NN-matching, echo=FALSE}
+matched.NN <- matchit(matching.formula, method="nearest", data = d.new)
+d.NN <- match.data(matched.NN)
+t.NN <- apply(d.NN[, c(2:7)], 2, function(x) t.test(x[d.NN$has.woman==1], x[d.NN$has.woman==0])$p.value)
+result.NN <- summary(matched.NN)[3][[1]][-1,]
+result.NN <- data.frame(cbind(result.NN, t.NN))
+result.NN[,c(1:2,8)]
+```
+
+
+
+# Nearest Neighbor Matching
+\footnotesize
+```{r NN-plot, message=FALSE, warning=FALSE, fig.height=4}
+plot(matched.NN, type="histogram")
+```
+
+# Genetic Matching
+- Set an objective function and update the distance metric iteratively
+$$\sqrt{(X_i - X_j)'(S^{-1/2})'WS^{-1/2}(X_i - X_j)}$$
+- Based upon evolutionary algorithm
+- It is very slow (especially if you choose a reasonable `pop.size`)
+- Can also do it with `Matching` or `GenMatch`
+
+\footnotesize
+```{r GE-matching, echo=FALSE, message=FALSE, warning=FALSE}
+library(Matching)
+library(rgenoud)
+
+gmatch <- GenMatch(d.new$has.woman,
+           d.new[,-d.new$has.woman],
+           pop.size = 1000,ties=FALSE,print.level=0)
+matches <- gmatch$matches[, 2]
+match.data <- subset(d.new, trt == 1)
+match.data <- rbind(match.data, d.new[matches, ])
+trt.factor <- rep(c("Treat","Control"),c(N,N))
+means <- apply(match.data[,-1],2,function(x) tapply(x,trt.factor,mean))
+sds <- apply(match.data[,-1],2,function(x) tapply(x,trt.factor,sd))
+t.p <- apply(match.data[,-1],2,function(x) t.test(x[trt], x[!trt])$p.value)
+ks.p <- apply(match.data[,-1],2,function(x) ks.test(x[trt], x[!trt])$p.value)
+```
+
+# Genetic Matching
+\footnotesize
+```{r, GE-result, echo=FALSE, message=FALSE}
+#View matches balance
+round(t(rbind(means, t.p)), 3)[c(1:6),]
+```
+- And then you can calculate the effect of interest
+
+
+# CEM
+
+- CEM creates bins along each covariate dimension (either pre-specified
+or automatic)
+-  Units lying in the same strata are then matched together
+- Curse of dimensionality means that with lots of covariates, we’ll only rarely
+have units in the same strata.
+
+# CEM
+\footnotesize
+```{r CE-matching, message=FALSE}
+library(cem)
+cem.match <- cem(treatment = "has.woman", 
+              data = d.new, 
+              drop = "liberalOutcome")
+cem.match
+```
+
+# CEM
+
+- Hopefully you are lucky and you have more units
+- If not, just tweak CEM
+\footnotesize
+```{r CE-matching1, message=FALSE}
+
+cutpoints <- list( median.ideo=c(0.3,0.5,0.7), 
+              median.age= c(60,65))
+cem.tweak.match <- cem(treatment = "has.woman", 
+                     data = d.new, 
+                     drop = "liberalOutcome", cutpoints = cutpoints)
+cem.tweak.match
+```
+
+# Asymptotics of Matching
+- Matching creates extra uncertainty (why?)
+- What is the real standard error of $\hat{\tau}$?
+\pause
+- Roadmap:
+    - Abadie and Imbens (2006): asymptotic distribution for NN matching (with replacement)
+    - Abadie and Imbens (2011): debiased matching estimator
+    - Abadie and Imbens (2008): boostrap doesn't work for matching
+    - Abadie and Imbens (2012): matching as a martingale (NN without replacement)
+    - Abadie and Imbens (2016): asymptotic distribution for PS matching
+    - Otsu and Rai (2017): wild bootstrap for NN matching
+    - Bodory et al. (2018): wild bootstrap for PS matching
+
+# Asymptotics of NN Matching
+- Denote $E\left[Y_i(D_i) | X_i \right]$ as $\mu_{D_i}(X_i)$, then $Y_i = \mu_{D_i}(X_i) + \epsilon_i$
+- Match with K nearest neighbors; replacement is allowed; covariates can be continuous
+$$\hat{\tau}_M = \frac{1}{N}\sum_{i=1}^{N}(\widehat{Y}_i(1) - \widehat{Y}_i(0))$$
+\pause
+- The bias from NN matching can be decomposed into three parts:
+$$\hat{\tau}_M - \tau = \overline{\tau(X)} - \tau + E_M + B_M$$
+where
+$$\overline{\tau(X)} = \frac{1}{N}\sum_{i=1}^{N}(\mu_1(X_i) - \mu_0(X_i))$$
+and
+$$E_M = \frac{1}{N}\sum_{i=1}^{N}(2D_i - 1)(1+\frac{K_M(i)}{M})\epsilon_i$$
+
+# Asymptotics of NN Matching
+- Abadie and Imbens (2006) show that both $\overline{\tau(X)}$ (difference in conditional expectations) and $E_M$ (sum of residuals) are asymptotically unbiased.
+- However, the conditional bias relative to  $\overline{\tau(X)}$,
+$$B_M = \frac{1}{N}\sum_{i=1}^{N}(2D_i - 1)\left[\frac{1}{M}\sum_{m=1}^{M}(\mu_{1-D_i}(X_i) - \mu_{1-D_i}(X_{j_m(i)}))\right]$$
+is not.
+\pause
+- The bias caused by "mismatch"; it declines very slowly.
+- The speed depends on the number of continuous covariates.
+- $B_M$ actually converges to an exponential distribution.
+- We may estimate $B_M$ directly using the serial estimator proposed by Newey (1995).
+- Take-away: do not use bootstrap for NN matching!
+
+
+# About IPW
+- It is actually the Horvitz-Thompson estimator.
+\pause
+- The duality of IPW and propensity score matching suggests two basic ways of conducting causal inference:
+    - Adjust the response surface (matching, regression)
+    - Adjust the assignment probability (weighting)
+    - Either approach returns unbiased estimate
+    - We can combine them to obtain doubly robustness
+    
+\pause
+- IPW can be extended to panel data (dynamic treatment regime).
+
+
+# The benefits of IPW
+- Hirano et al. (2003): the variance of IPW estimators can reach the Cramer-Rao lower bound
+- What if we use the real propensity score? 
+\pause
+- The variance will be larger! (Hahn, 1998)
+- Empirical propensity scores take into account all the actual imbalances in the sample
+
+
+# Caveats for IPW
+- It behaves poorly at the "tail" of the support
+\pause
+- One solution is to stabilize it using the Hajek estimator
+\pause  
+- Another solution is to drop data at the tail part
+- Changes the quantity of interest
+\pause
+- Ma and Wang (2019): asymptotic distribution for both trimed/untrimed IPW
+- They also provide a bias correction method based on resampling
+
+\footnotesize
+```{r IPW, echo=FALSE, message=FALSE}
+RS.est <- lm(liberalOutcome ~ has.woman + median.ideo + median.age + repub.majority + has.minority + maj.experienced + liberal.lower.direction, d.new)
+
+HA.weight <- trt/pscore.logit + (1 - trt)/(1 - pscore.logit)
+
+
+IPW.est <- lm(liberalOutcome ~ has.woman, d.new, weights=HA.weight)
+
+DR.est <- lm(liberalOutcome ~ has.woman+median.ideo + median.age +repub.majority+has.minority + 
+                      maj.experienced+liberal.lower.direction, d.new, weights=HA.weight)
+IPW.means <- t(apply(d.new[, -1], 2, function(x) tapply(x, d.new$has.woman, function(y) weighted.mean(y, weights=HA.weight))))
+IPW.means
+```
+
+
+
+# CBPS and covariates balancing
+- IPW balances the covariates, then why don't we direct seek for balance?
+- What can you do when the treatment is continuous? 
+\pause
+- Imai and Ratkovic (2013); Fong, Hazlett and Imai (2018): Covariate Balancing Propensity Score
+- Idea: find weights that are orthogonal to $X$, $D$, and their interaction 
+$$\sum_{i}^{N} w_i (X^{*}_{i}, D_{i}^{*}, X^{*}_{i}*D_{i}^{*}) = 0 \text{,    } \sum_{i}^{N} w_i = N$$
+\pause
+- Hainmueller (2012); Hazlett (2015); Arbour and Dimmery (2019)
+- Various forms of convex optimization
+
+# CBPS and covariates balancing
+
+```{r balance1, echo=FALSE, message=FALSE}
+require(CBPS)
+CBPS.score <- CBPS(has.woman ~ median.ideo + median.age + repub.majority + has.minority + maj.experienced + 
+                   liberal.lower.direction, d.new)
+
+CBPS.weight <- CBPS.score$weights
+
+CBPS.est <- lm(liberalOutcome ~ has.woman, d.new, weights=CBPS.weight)
+
+CBPS.means <- t(apply(d.new[, -1], 2, function(x) tapply(x, d.new$has.woman, function(y) weighted.mean(y, weights=CBPS.weight))))
+CBPS.means
+```
+
+```{r balance2, echo=FALSE, message=FALSE}
+require(ebal)
+eb.score <- ebalance(Treatment = d.new$has.woman, X = cbind(d.new$median.ideo, d.new$median.age, d.new$repub.majority, d.new$has.minority, d.new$maj.experienced, d.new$liberal.lower.direction))
+
+eb.weight <- eb.score$w
+
+eb.means <- t(apply(d.new[, -1], 2, function(x) tapply(x, d.new$has.woman, function(y) weighted.mean(y, weights=eb.weight))))
+eb.means
+```
+ 
+# Placebo test
+- There is no fixed way of conducting placebo test
+- Find some variable/observation that should not be affected by the treatment
+\pause
+- Will the weight of your friends affect yours? How about height?
+\pause
+- More common in panel data analysis
+
+
+# Sensitivity analysis
+- The basic idea: How influential unobservable confounders have to be to make the estimate insignificant/zero?
+\pause
+- Remember that confounders must be correlated with both D and Y
+- Vary the two correlation coefficients and check how the estimate would change
+- Compare the correlation coefficients against observable confounders
+- Methods differ in their assumptions on the DGP
+
+# Sensitivity analysis
+- First proposed by Rosenbaum and Rubin (1983)
+- Imbens (2003): Full parametric model
+- Blackwell (2013): Measure selection bias
+- Dorie et al. (2016): Semi-parametric test using BART
+- Cinelli and Hazlett (2020): Sensitivity from the OVB perspective
+
+
+# Blackwell (2013)
+
+- Instead of imagining specific uni or multivariate omitted variable, imagine a function which defines the confounding.
+- $q(d,x) = E[Y_i(d)|D_i = d, X_i = x] - E[Y_i(d)|D_i = 1 - d, X_i = x]$
+- If q is positive units in group $d$ have a higher mean potential outcome under $d$ that those in group $1-d$. 
+- So $q$ encodes the selection bias of treatment assignment: it models violations of ignorability.
+- After all, confounding means that potential outcomes vary by treatment status. 
+- Now, $Y^q_i = Y_i - qPr(1-D_i | X_i)$ and we can redo the analysis.
+- Package on CRAN: `causalsens`
+
+# Blackwell (2013)
+```{r sen1, echo=FALSE, message=FALSE, fig.height=5}
+require(causalsens)
+data(lalonde.exp)
+ymodel <- lm(re78 ~ treat+age + education + black + hispanic + married + 
+               nodegree + re74 + re75 + u74 + u75, data = lalonde.exp)
+pmodel <- glm(treat ~ age + education + black + hispanic + married + 
+                nodegree + re74 + re75 + u74 + u75, data = lalonde.exp, family = binomial())
+alpha <- seq(-4500, 4500, by = 250)
+ll.sens <- causalsens(ymodel, pmodel, ~ age + education, data = lalonde.exp, 
+                      alpha = alpha, confound = one.sided.att)
+plot(ll.sens, type = "raw", bty = "n")
+```
+
+# Blackwell (2013)
+```{r sen2, echo=FALSE, message=FALSE, fig.height=5}
+plot(ll.sens, type = "r.squared", bty = "n")
+```
+
+# Cinelli and Hazlett (2020)
+
+- Sensitivity from the omitted variable bias perspective
+- Suppose the correct model is $Y = \hat \tau D + \mathbf{X}\hat \beta + \hat \gamma Z + \hat \varepsilon_{full}$
+- But $Z$ is unobservable
+- So the real model is $Y = \hat \tau_{res} D + \mathbf{X}\hat \beta_{res} + \hat \varepsilon_{res}$
+- It is easy to see:
+$$
+\begin{aligned}
+\hat \tau_{res} = & \frac{Cov(D^{\perp \mathbf{X}}, Y^{\perp \mathbf{X}})}{Var(D^{\perp \mathbf{X}})} \\
+= & \frac{Cov(D^{\perp \mathbf{X}}, \hat \tau D^{\perp \mathbf{X}} + \hat \gamma Z^{\perp \mathbf{X}})}{Var(D^{\perp \mathbf{X}})} \\
+= & \hat \tau + \hat \gamma \frac{Cov(D^{\perp \mathbf{X}}, Z^{\perp \mathbf{X}})}{Var(D^{\perp \mathbf{X}})} \\
+= & \hat \tau + \hat \gamma \hat \delta
+\end{aligned}
+$$
+
+# Cinelli and Hazlett (2020)
+
+- The difference between the correct estimate $\hat \tau$ and the real estimate $\hat \tau_{res}$ has two parts:
+    - $\hat \gamma$: the impact of the unobservable
+    - $\hat \delta$: the imbalance of the unobservable
+- Essentially, the estimate is robust to model misspecification when both $Y$ and $D$ can be largely explained by the observable covariates
+- The idea could be extended to the nonlinear case where we use $R^2$ to measure the explanatory power of observable covariates
+- Model misspecification is not dependent on the sample size
+
+
+# Cinelli and Hazlett (2020)
+```{r sen3, echo=FALSE, fig.height=5, message=FALSE}
+library(sensemakr)
+data("darfur")
+
+# runs regression model
+model <- lm(peacefactor ~ directlyharmed + age + farmer_dar + herder_dar +
+                         pastvoted + hhsize_darfur + female + village, data = darfur)
+
+# runs sensemakr for sensitivity analysis
+sensitivity <- sensemakr(model, treatment = "directlyharmed",
+                               benchmark_covariates = "female",
+                               kd = 1:3)
+plot(sensitivity)
+```
+
+
+# Cinelli and Hazlett (2020)
+```{r sen4, echo=FALSE, message=FALSE,fig.height=5}
+sense_ll <- sensemakr(ymodel, treatment = "treat",
+                      benchmark_covariates = "nodegree",
+                               kd = 1:3)
+plot(sense_ll)
+```
