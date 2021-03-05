@@ -244,7 +244,7 @@ robust.se <- function(model, cluster){
 # Clustering
 
 - Example: Bertrand, Marianne, Esther Duflo, and Sendhil Mullainathan. "How much should we trust differences-in-differences estimates?." The Quarterly journal of economics 119.1 (2004): 249-275.
-- They claims serial correlation in panel data should be taken into account.
+- It claims serial correlation in panel data should be taken into account.
 
 \pause
 
