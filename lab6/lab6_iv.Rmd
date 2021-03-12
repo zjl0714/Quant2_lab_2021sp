@@ -17,6 +17,10 @@ header-includes: \input{../teX-preamble/preamble}
 - Beyond LATE
 - Falsification Tests
 
+# Notice:
+
+- Starting from Sunday, US changes back to daylight saving time.
+- Change your clock accordingly!
 
 # LATE
 - Principal strata: subsets defined by post-treatment variables
@@ -274,7 +278,7 @@ lines(density(Y_01), lty = 2)
 
 # Falsification 
 
-- The exclusion restriction cannot be tested directly, but it can be falsified.
+- Another approach: following the mechanism. 
 
 - Test the reduced form effect of $Z_i$ on $Y_i$ in situations where it is impossible or extremely unlikely that $Z_i$ could affect $D_i$ .
 
