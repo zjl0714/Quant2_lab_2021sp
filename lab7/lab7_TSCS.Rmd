@@ -1,0 +1,511 @@
+---
+title: "TSCS Data Analysis"
+author: "Ye Wang"
+output: 
+  beamer_presentation:
+    toc: false
+bibliography: /Users/yewang/Dropbox/Personal/TeachingMaterials/CausalInference/causalinference.bib
+biblio-style: apsr
+header-includes:
+  - \usepackage{subfigure}
+  - \widowpenalties 1 150
+---
+
+# Outline
+- Today we start from comparing two basic assumptions in TSCS data analysis: strict exogeneity and sequential ignorability.
+\pause
+- We show that classic methods under strict exogeneity have various limitations.
+\pause
+- We then introduce several approaches to fix the problems, such as counterfactual estimation.
+\pause
+- We next review available methods under sequential ignorability.
+\pause
+- We conclude by discussing the idea of manifold learning and how to deal with interference in TSCS data (hopefully!).
+
+<!-- # Roadmap: classic methods -->
+<!-- - DID is an old idea that dates back to the work of John Snow. -->
+<!-- \pause -->
+<!-- - What causes cholera in certain areas of London, air or water? -->
+<!-- \pause -->
+<!-- - It became well-known in social sciences since the controversial study of @card1994minimum. -->
+<!-- \pause -->
+<!-- - The development of modern fixed effects models is largely attributed to @mundlak1978pooling and @chamberlain1982multivariate. -->
+<!-- \pause -->
+<!-- - Many authors have made contributions to the literature. -->
+<!-- \pause -->
+<!-- - Influential textbooks include @hsiao2014analysis and @wooldridge2010econometric. -->
+<!-- \pause -->
+<!-- - For critiques of the fixed effects models, see @imai2019should, @strezhnev2017generalized and @detwo -->
+<!-- \pause -->
+<!-- - @robins2000marginal provide the foundation of analysis based on sequential ignorability. -->
+<!-- \pause -->
+<!-- - The basic ideas are introduced into political science by @blackwell2013framework and @blackwell2018make. -->
+
+<!-- # Roadmap: factor models -->
+<!-- - @bai2002determining first discuss the asymptotic properties of factor models. -->
+<!-- \pause -->
+<!-- - @bai2003inferential derives the asymptotic distribution of the estimates of factors and factor loadings. -->
+<!-- \pause -->
+<!-- - @bai2004estimating extends the analysis to non-stationary factors. -->
+<!-- \pause -->
+<!-- - @bai2009panel further discusses cases with covariates (interactive fixed-effects models, or IFE). -->
+<!-- \pause -->
+<!-- - See @bai2015dynamic for the recent progress with more complex structures. -->
+
+<!-- # Roadmap: factor models -->
+<!-- - The classic synthetic control (SC) method in @abadie2010synthetic is built upon a factor model. -->
+<!-- \pause -->
+<!-- - @gobillon2016regional establish the equivalence between SC and factor models. -->
+<!-- \pause -->
+<!-- - @xu2017generalized generalizes the framework to allow for multiple treated units. -->
+<!-- \pause -->
+<!-- - @athey2018matrix suggest that we may directly complete the data matrix rather than estimating the factors. -->
+<!-- \pause -->
+<!-- - @bai2019matrix develop a novel algorithm to apply factor models to matrix completion. -->
+<!-- \pause -->
+<!-- - @xiong2019large propose another algorithm from the perspective of missing data. -->
+<!-- \pause -->
+<!-- - @liu2020practical summarize these works using the framework of "counterfactual estimation" and offer several diagnose tools. -->
+
+
+
+# What is unique about TSCS data?
+- Why not just pooled OLS?
+\pause    
+    - Observations are dependent, 
+    - The panel structure allows us to relax the identification assumption.
+\pause
+- In the cross-sectional setting, we need ignorability: $D_i \perp Y_i(D_i) | \mathbf{X}_i$, $0 < P(D_i = 1 | \mathbf{X}_i) < 1$.
+\pause    
+- Now we can relax the assumption along two possible directions (based on your belief).
+
+    
+# What is unique about TSCS data?
+- Strict exogeneity: $D_{it} \perp Y_{is}(D_{is}) | \mathbf{X}_{i}^{1:t}, \mathbf{U}_{i}^{1:t}$, where $\mathbf{X}_{i}^{1:t}$ the history of observable confounders and $\mathbf{U}_{i}^{1:t}$ the history of unobservable confounders.
+\pause
+- Sequential ignorability: $D_{it} \perp Y_{it}(D_{it}) | \mathbf{Y}_{i}^{1:(t-1)}, \mathbf{X}_{i}^{1:t}$.
+\pause
+- Notice that we implicitly require both $\mathbf{X}_{it}$ and $\mathbf{U}_{it}$ to be exogenous to $Y_{it}$.
+\pause
+- Intuitively, their values do not hinge on the value of the outcome in history.
+\pause
+- We always assume that SUTVA holds and there is no reversal causality (future treatments won't affect past outcomes).
+
+
+# Ideal experiments behind the two assumptions
+- The two assumptions are based upon two different ideal experiments (data generating processes).
+\pause
+- Under strict exogeneity, the experimenter observes all the unobservable attributes and pre-specifies the treatment assignment in each period for each unit before seeing the outcome.
+\pause
+- In other words, the plan of assigning the treatment has been fixed before the start of the experiment.
+\pause
+- You will be vaccinated on Feb. 15 with probability 0.72 if you are an old Asian male who loves tequila and that day's temperature is above zero.
+\pause
+- The dataset available to the analyst only includes each unit's observable attributes, health status, treatment status, and the vaccination date. 
+    
+    
+# Ideal experiments behind the two assumptions
+- Under sequential ignorability, the plan of assigning the treatment will be adjusted according to the outcomes observed in the past.
+\pause
+- Also, the experimenter does not possess the information on the unobservable attributes of a subject.
+\pause
+- You will be vaccinated on Feb. 15 with probability 0.72 if you are an old Asian male who were not infected by Covid last week.
+\pause
+- The dataset includes the observable attributes, the history of outcomes and treatment assignments of each unit, and the vaccination date.
+
+# Ideal experiments behind the two assumptions
+>- Under sequential ignorability, the analyst (us) does observe all the confounders and the only unknown part is the propensity score.
+>- All the classic methods (regression, weighting, matching, etc.) still apply with some modifications.
+>- Under strict exogeneity, we have the problem of omitted variables as part of the confounders ($\mathbf{U}_{i}^{1:T}$) is also unknown.
+>- To eliminate the influence of the unobservables, we need stronger assumptions on the DGP, such that the values of $\mathbf{U}_{i}^{1:T}$ can be learned from other variables.
+
+
+# Estimation under strict exogeneity
+- Note that the strict exogeneity assumption is satisfied by the following outcome model:
+$$
+\begin{aligned}
+& Y_{it} = g_{it}(D_{it}, \mathbf{X}_{i}^{1:t}, \mathbf{U}_{i}^{1:t}) + \varepsilon_{it} \\
+& \mathbb{E}[\varepsilon_{is} | D_{it}, \mathbf{X}_{it}, \mathbf{U}_{it}] = 0,
+\end{aligned}
+$$
+which is too general for identification.
+
+# Estimation under strict exogeneity
+- In practice, we impose structural assumptions to simplify the model.
+\pause
+- Only contemporary values of $\mathbf{X}$ and $\mathbf{U}$ are confounders: 
+$$
+Y_{it} = g_{it}(D_{it}, \mathbf{X}_{it}, \mathbf{U}_{it}) + \varepsilon_{it}.
+$$
+\pause
+- The effects of $D$, $\mathbf{X}$ and $\mathbf{U}$ are additive: 
+$$
+Y_{it} = \delta_{it}D_{it} + f_{it}(\mathbf{X}_{it}) + h_{it}(\mathbf{U}_{it}) + \varepsilon_{it}.
+$$
+\pause
+- $\mathbf{X}$ affect $Y$ in a linear manner and $h_{it}(\mathbf{U}_{it})$ has a low-dimensional decomposition.
+
+# Estimation under strict exogeneity
+- For example, we can assume that $h_{it}(\mathbf{U}_{it}) = \mu + \alpha_i + \xi_t$, then 
+$$
+Y_{it} = \mu + \delta_{it}D_{it} + \mathbf{X}_{it}\beta + \alpha_i + \xi_t + \varepsilon_{it}.
+$$
+- We get the two-way fixed effects model with heterogeneous treatment effects.
+\pause
+- The classic approach further assumes that the treatment effect is homogeneous:
+$$
+Y_{it} = \mu + \delta D_{it} + \mathbf{X}_{it}\beta + \alpha_i + \xi_t + \varepsilon_{it}.
+$$
+\pause
+- Now, the assumption of strict exogeneity becomes: $\mathbb{E}[\varepsilon_{is} | D_{it}, \mathbf{X}_{it}, \alpha_i, \xi_t] = 0$ for any $s$.
+
+
+# Estimation under strict exogeneity
+>- The classic two-way fixed effects model can be estimated via the within-estimator.
+>- We no longer have consistent estimates if treatment effects are heterogeneous.
+>- There are several solutions to the problem.
+>- It is easier to fix the problem under the DID setting (Strezhnev, 2017).
+>- Otherwise, we need to modify the estimand or impose stronger assumptions.
+
+
+# DIDM
+- @detwo advocate that we should focus only on the instant effects generated by the treatment and estimate
+$$
+\frac{1}{N^*}\sum_{t \geq 2, D_{it} \neq D_{i,t-1}}\delta_{it}
+$$
+where $N^* = \sum_{i=1}^N \sum_{t=1}^T \mathbf{1}\{t \geq 2, D_{it} \neq D_{i,t-1}\}$.
+\pause
+- This estimand is well-defined and can be consistently estimated.
+\pause
+- Yet it throws away a ton of information as well thus is not very efficient.
+\pause
+- There are more efficient approaches which require stronger assumptions on model specification.
+
+# Counterfactual estimation
+- @xu2017generalized and @liu2020practical combine factor models with the Neyman-Rubin framework
+$$
+Y_{it} = \delta_{it} D_{it} + \mathbf{X}_{it}\beta + \alpha_i + \xi_t + \mathbf{f}_t \lambda_i + e_{it},
+$$
+\pause
+- The basic idea is to use untreated observations ($(i,t) \in \mathcal{O}$) to fit a factor model and employ the model to predict $Y_{it}(0)$ for each treated observation ($(i,t) \in \mathcal{M}$).
+\pause
+- Clearly, $\hat \delta_{it} = Y_{it} - \hat Y_{it}(0)$ and 
+$$
+\widehat{ATT} = \frac{1}{|\mathcal{M}|}\sum_{(i,t) \in \mathcal{M}} \hat \delta_{it}
+$$
+
+# Counterfactual estimation 
+\begin{itemize}
+	\item In a TSCS setting, treat $Y(1)$ as missing data
+	\item<3-> Predict $Y(0)$ based on an outcome model (FE or IFE)
+	\item<4-> (Use pre-treatment data for model selection)
+	\item<5> Estimate ATT by averaging differences between $Y(1)$ and $\hat{Y}(0)$
+\end{itemize}
+\centering
+\only<1,5>{\includegraphics[width = 0.8\textwidth]{sim_treat1.pdf}}
+\only<2-3>{\includegraphics[width = 0.8\textwidth]{sim_treat2.pdf}}
+\only<4>{\includegraphics[width = 0.8\textwidth]{sim_treat3.pdf}}
+
+
+# Counterfactual estimation
+- We should keep in mind that the validity of this approach relies on a series of assumptions.
+\pause
+- The model specification has to be correct:
+    - Observable and unobservable confounders are separable.
+    - Observable confounders affect the outcome in a linear and homogeneous manneer.
+    - Unobservable confounders have a low-dimensional decomposition.
+
+\pause
+
+- It also requires strict exogeneity, thus excludes temporal interference.
+
+
+<!-- # Counterfactual estimation -->
+<!-- - @xu2017generalized assumes that the assignment process is staggered adoption and there is no cross-unit HAC. -->
+<!-- \pause -->
+<!-- - We fit the interactive fixed effects model only on "pure controls." -->
+<!-- - Next, we estimate the factor loadings of the treated units using the estimated factors and their pre-treatment periods. -->
+<!-- \pause -->
+<!-- - There is a loss of efficiency. -->
+<!-- \pause -->
+<!-- - Inference is conducted via block bootstrap. -->
+
+
+<!-- # Counterfactual estimation -->
+<!-- - MC penalizes the magnitude rather than the number of singular values (soft impute vs. hard impute). -->
+<!-- \pause -->
+<!-- - @liu2020practical uses simulation to show that matrix completion performs better when the DGP contains many weak factors. -->
+<!-- \begin{figure}[!ht] -->
+<!-- \centering -->
+<!-- \begin{minipage}{0.95\linewidth} -->
+<!-- {\centering -->
+<!-- \hspace{-1em} -->
+<!-- \subfigure[Comparison]{\includegraphics[width = 0.33\textwidth]{monte_compare.pdf}}\hspace{0.3em} -->
+<!-- \subfigure[IFEct]{\includegraphics[width = 0.33\textwidth]{monte_mspe_ife.pdf}} -->
+<!-- \subfigure[MC]{\includegraphics[width = 0.33\textwidth]{monte_mspe_mc.pdf}} -->
+<!-- } -->
+<!-- \end{minipage}\vspace{-1em} -->
+<!-- \end{figure} -->
+
+# Counterfactual estimation
+<!-- - @liu2020practical allows for more general assignment process under the assumption of no feedback and no carryover [@imai2019should]. -->
+<!-- \pause -->
+<!-- - Even conventional fixed effects models can be used to predict the counterfactual (FEct). -->
+<!-- \pause -->
+<!-- - An EM algorithm is used to estimate factors and factor loadings at the same time [@gobillon2016regional]. -->
+<!-- \pause -->
+- One advantage of the framework is that testing the identification assumption becomes straightforward.
+\pause
+- @liu2020practical provides a set of tools for practitioners to evaluate the identification assumption.
+\pause
+- A plot of dynamic effects.
+- A placebo test: estimate treatment effects before the treatment's onset and test their significance.
+- An equivalence test: test whether all the pre-treatment ATTs are equal to zero using TOST.
+
+
+
+
+# Example
+- Let's consider a DGP with two factors (hence FEct will be biased).
+```{r raw-data, echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(fect)
+library(fastplm)
+library(panelView)
+
+data(fect)
+
+panelView(Y ~ D, data = simdata1, index = c("id","time"), 
+  axis.lab = "time", xlab = "Time", ylab = "Unit", show.id = c(1:100), 
+  theme.bw = TRUE, type = "outcome", main = "Simulated Data: Outcome")
+```
+
+# Example
+```{r treatment-status, echo=FALSE, warning=FALSE, message=FALSE}
+panelView(Y ~ D, data = simdata1, index = c("id","time"), by.timing = TRUE,
+  axis.lab = "time", xlab = "Time", ylab = "Unit", show.id = c(1:100),
+  background = "white", main = "Simulated Data: Treatment Status")
+```
+
+# Example
+```{r fect, echo=FALSE, warning=FALSE, message=FALSE}
+out.fect <- fect(Y ~ D + X1 + X2, data = simdata1, index = c("id","time"), 
+                 force = "two-way", se = TRUE,  nboots = 100)
+plot(out.fect, main = "Estimated ATT (FEct)", ylab = "Effect of D on Y", 
+     cex.main = 0.8, cex.lab = 0.8, cex.axis = 0.8)
+```
+
+# Example
+```{r fect-equiv, echo=FALSE, warning=FALSE, message=FALSE}
+plot(out.fect, type = "equiv", ylim = c(-4, 4), 
+     cex.legend = 0.6, main = "Testing Pre-Trend (FEct)", cex.text = 0.8)
+```
+
+# Example
+```{r fect-placebo, echo=FALSE, warning=FALSE, message=FALSE}
+out.fect.p <- fect(Y ~ D + X1 + X2, data = simdata1, index = c("id", "time"),
+                   force = "two-way", parallel, se = TRUE,
+                   nboots = 100, placeboTest = TRUE, placebo.period = c(-2, 0))
+plot(out.fect.p, ylab = "Effect of D on Y", main = "Estimated ATT (IFE)", cex.text = 0.8, stats = c("placebo.p","equiv.p"))
+```
+
+
+```{r ifect, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+out.ife <- fect(Y ~ D + X1 + X2, data = simdata1, index = c("id","time"), 
+                force = "two-way", method = "ife", CV = TRUE, r = c(0, 5), 
+                se = TRUE, nboots = 100)
+```
+
+# Example
+```{r ifect-dym, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+plot(out.ife, main = "Estimated ATT (IFEct)")
+```
+
+# Example
+```{r ifect-equiv, echo=FALSE, warning=FALSE, message=FALSE}
+plot(out.ife, type = "equiv", ylim = c(-4, 4), 
+     cex.legend = 0.6, main = "Testing Pre-Trend (IFEct)", cex.text = 0.8)
+```
+
+# Example
+```{r iifect-placebo, echo=FALSE}
+out.ife.p <- fect(Y ~ D + X1 + X2, data = simdata1, index = c("id", "time"),
+                  force = "two-way", method = "ife",  r = 2, CV = 0,
+                  se = TRUE, nboots = 100, placeboTest = TRUE, placebo.period = c(-2, 0))
+plot(out.ife.p, ylab = "Effect of D on Y", main = "Estimated ATT (IFE)", cex.text = 0.8, stats = c("placebo.p","equiv.p"))
+```
+
+# Estimation under sequential ignorability
+- The assumption is a weaker version of "select on observables."
+\pause
+- All the techniques we have learned are applicable (regression, weighting, matching).
+\pause
+- Old idea: we write down a model for $Y_{it}$ (AR, MA, ARIMA, ADL, etc.) to control for confounders.   
+\pause
+- A giant in this field --- Neal!
+\pause
+- The lagged dependent variable does solve a lot of problems, as the time trend is usually the most important confounder.
+\pause
+- Modern approach: IPTW estimators (MSMs) and doubly robust estimators.
+\pause
+- Notice that the propensity score for unit $i$ in period $t$ has the form of $P(D_{it} | \mathbf{Y}_i^{1:(t-1)}, \mathbf{X}_i^{1:t})$.
+
+
+# Weighting under sequential ignorability
+- Suppose there is no interference and we are interested in the contemporary effect generated by the treatment:
+$$
+\tau_{t} = \frac{1}{N} \sum_{i=1}^N \tau_{it}, \text{ where } \tau_{it} = Y_{it}(1) - Y_{it}(0)
+$$
+\pause
+- Remember that sequential ignorability means $D_{it} \perp Y_{it}(D_{it}) | \mathbf{Y}_{i}^{1:(t-1)}, \mathbf{X}_{i}^{1:t}$ for any $t$.
+\pause
+- We can select a model to estimate the propensity score $e_{it} = P(D_{it} = 1 | \mathbf{Y}_i^{1:(t-1)}, \mathbf{X}_i^{1:t})$ and apply the IPTW estimator:
+$$
+\hat{\tau}_t = \frac{1}{N} \sum_{i=1}^N \frac{D_{it}Y_{it}}{e_{it}} - \frac{1}{N} \sum_{i=1}^N \frac{(1-D_{it})Y_{it}}{1-e_{it}}.
+$$
+\pause
+- It is just another Horvitz-Thompson estimator.
+
+# Balancing under sequential ignorability
+- Let's ignore the covariates from now on.
+\pause
+- The only confounder is the history of the outcome, $\mathbf{Y}_i^{1:(t-1)}$.
+\pause
+- A natural idea is to balance the distribution of the confounder across the treatment group $\mathcal{T}$ and the control group $\mathcal{C}$, like in CBPS and entropy balancing.
+\pause
+- But when $T$ is large, balancing the entire history can be challenging in practice.
+\pause
+- @hazlett2018trajectory suggest that we may instead balance kernels of the history.
+\pause
+- The implicit assumption is that the distribution of the outcome history can be well approximated by its kernels.
+
+# Balancing under sequential ignorability
+- We search for a group of positive weights $\{w_i\}$ which sum to one such that
+$$
+\begin{aligned}
+& \frac{1}{|\mathcal{T}|} \sum_{i \in \mathcal{T}} \mathbf{K}_{i} = \sum_{i \in \mathcal{C}} w_i \mathbf{K}_{i}
+\end{aligned}
+$$
+where $\mathbf{K}_i = (k(\mathbf{Y}_i, \mathbf{Y}_1), k(\mathbf{Y}_i, \mathbf{Y}_2), \dots, k(\mathbf{Y}_i, \mathbf{Y}_N))$, $\mathbf{Y}_i$ is the pre-treatment outcome history of unit $i$, and 
+$$
+k(\mathbf{Y}_i, \mathbf{Y}_j) = e^{-||\mathbf{Y}_i - \mathbf{Y}_j||^2/h}.
+$$
+
+# Balancing under sequential ignorability
+- Next, we estimate the treatment effect on the treated in each period
+$$
+\begin{aligned}
+\hat{\tau}_{t} =  \frac{1}{|\mathcal{T}|} \sum_{i \in \mathcal{T}} Y_{it} -  \sum_{i \in \mathcal{C}} w_i Y_{it}
+\end{aligned}
+$$
+- They show the consistency of the ATT estimator and are still working on its asymptotic normality.
+\pause
+- @kim2019matching show that we can do the same via matching.
+
+
+# Doubly robust estimation in TSCS data
+- Why can't we directly estimate propensity scores under strict exogeneity?
+\pause
+- We have to assume that there is a correct model with unobservables for the treatment as well.
+\pause
+- @arkhangelsky2019double show that we can get around this problem via weighting under some circumstances.
+\pause
+- We need stronger assumptions on the assignment mechanism.
+\pause
+- Suppose the true propensity score has the following form: 
+$$
+E\left[D_{it} | \alpha_i \right] = \frac{exp(\alpha_i + \xi_t)}{1 + exp(\alpha_i + \xi_t)}
+$$
+\pause
+- They show that now $\mathbf{D}_i^T \perp \mathbf{Y}_{jt}(\mathbf{D}^T) | \frac{1}{T}\sum_{t=1}^T D_{it}$.
+\pause
+- $S_i = \frac{1}{T}\sum_{t=1}^T D_{it}$ is a sufficient statistic for $\alpha_i$.
+
+# Manifold learning
+- @arkhangelsky2019double further illustrate that under this assumption, all we need to do is to find a group of weights (again!) such that:
+$$
+\begin{aligned}
+& \{\hat{w}_{it}\} = \arg \min \frac{1}{NT} \sum_{i=1}^N \sum_{t=1}^T \hat{w}_{it}^2, \\
+\text{s.t. } & \frac{1}{NT} \sum_{i=1}^N \sum_{t=1}^T \hat{w}_{it} D_{it} = 1, \frac{1}{N} \sum_{i=1}^N \hat{w}_{it} = 0, \frac{1}{T} \sum_{t=1}^T \hat{w}_{it} = 0, \\
+& \frac{1}{NT} \sum_{i=1}^N \sum_{t=1}^T \hat{w}_{it} \psi_{it}(S_i) = 0, \hat{w}_{it} D_{it} \geq 0.
+\end{aligned}
+$$
+- Then, the estimate of the ATE,
+$$
+\hat{\tau} = \frac{1}{NT} \sum_{i=1}^N \sum_{t=1}^T \hat{w}_{it} Y_{it}
+$$
+
+# Manifold learning
+- Note that we are learning information of the unobservable $\alpha_i$ from the observable variable $\frac{1}{T}\sum_{t=1}^T D_{it}$.
+\pause
+- This is the idea of manifold learning: we assume that the unobservable variable is a low-dimensional manifold embeded in a high-dimensional space.
+\pause
+- @feng2020causal formally develops this idea for TSCS data analysis.
+\pause
+- He assumes that the only unobservable confounder is the factor loading $\lambda_i$ and $Y_{it} = \zeta_t(\lambda_i) + \nu_{it}$.
+\pause
+- As long as we can learn the value of $\lambda_i$ from $Y_{it}$, all the classic techniques can be applied.
+\pause
+- To estimate $\lambda_i$, we first match each unit $i$ to $K$ nearest neighbors.
+\pause
+- Next, we estimate $\lambda_i$ via PCA on the $K+1$ outcome histories.
+
+
+# Manifold learning
+\begin{figure}[!ht]
+\centering
+\includegraphics[width = .8\textwidth]{manifold.png}
+\end{figure}
+
+# Temporal interference
+- Everything becomes complicated if we allow for temporal interference or "carryover" of the treatment effects.
+\pause
+- Now the outcome is affected by the history of treatment assignment: $Y_{it} = Y_{it}(\mathbf{D}_{i}^{1:t})$.
+\pause
+- Treatment assignments are usually temporally dependent in panel data.
+\pause
+- Now, past treatments become confounders.
+\pause
+- We have to control their influence under either assumption.
+
+# Temporal interference under strict exogeneity
+- Under strict exogeneity, temporal interference is not a big concern if we also have staggered adoption.
+\pause
+- The only difference is that the estimated ATT in each period is the cumulative effect of the treatment assignment history.
+\pause
+- Otherwise, there is one more reason for the invalid second difference to occur.
+\pause
+- We can still estimate the quantity defined by @detwo, but nothing else.
+\pause
+- Sequential ignorability is the more suitable assumption if we have temporal interference
+
+# Temporal interference under sequential ignorability
+- Suppose there are $T$ weeks, then there are $2^T$ possible "potential histories."
+\pause 
+- Too many!  
+\pause
+- We may similarly construct marginalized estimands.
+\pause
+- We can further construct a function to aggregate the history's effect: $\tau_{it} = g(\mathbf{D}_{i}^{s:t}) - g(\mathbf{D}_{i}^{s:t})$.
+\pause
+- For example, the number of periods under the treatment: $g(\mathbf{D}_{i}^{s:t}) = \sum_{t'=s}^t \mathbf{D}_{it'}$.
+\pause
+- We can obtain valid estimate for the history's aggregated effect after weighting observations properly.
+\pause
+- Now, 
+$$
+P(\mathbf{D}_{i}^{s:t} = \mathbf{d}^{s:t}) = \prod_{s'=s}^t P(D_{is'} | \mathbf{D}_i^{1:(s'-1)}, \mathbf{Y}_i^{1:(s'-1)}, \mathbf{X}_i^{1:s'}).
+$$
+
+# Spatial interference in TSCS data
+- If we also have spatial/between-unit interference, then even the classic DID estimator will be biased.
+\pause
+- @wang2020causal shows that the limit of the DID estimator has no substantive interpretation under spatial interference.
+\pause
+- Intuitively, the control group is contaminated and we cannot eliminate the bias via outcome adjustment.
+\pause
+- Yet under sequential ignorability, we can combine the idea in @aronow2020design and MSMs to generate consistent estimates for both the direct and the indirect effects.
+
+# References {.allowframebreaks} 
