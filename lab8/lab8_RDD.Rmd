@@ -1,0 +1,554 @@
+---
+title: "Regression Discontinuity Designs"
+subtitle: "Classic Theories and Recent Development"
+author: "Ye Wang"
+output: 
+  beamer_presentation:
+    toc: false
+bibliography: /Users/yewang/Dropbox/Personal/TeachingMaterials/CausalInference/causalinference.bib
+biblio-style: apsr
+header-includes:
+  - \usepackage{subfigure}
+  - \widowpenalties 1 150
+---
+
+
+# Outline
+- We start from considering the ideal experiment behind sharp RDD.
+\pause
+- We then proceed to discuss the the asymptotic performance of the classic RDD estimators.
+\pause
+- Next, we discuss a special case in RDD where the running variable is discrete.
+\pause
+- We finally introduce two modern perspectives to understand RDD: local randomization and noise-induced randomization.
+
+
+# Roadmap
+- @thistlethwaite1960regression first develop this idea in psychology.
+\pause
+- @hahn2001identification formally discuss the identification assumptions in RDD.
+\pause
+- @porter2003estimation proposes the local regression estimator based on the idea in @fan1996local.
+\pause
+- @imbens2012optimal introduce the first data-driven bandwidth selector.
+\pause
+- @calonico2014robust address the insufficiency in @imbens2012optimal and derive the asymptotic distributions for a group of RDD estimators.
+\pause
+- @calonico2020optimal suggest a bandwidth selector that is optimal for inference.
+\pause
+- @mccrary2008manipulation develops a test for self-selection in RDD.
+\pause
+- @lee2008randomized first applies RDD to analyze congressional elections in the US.
+
+# Roadmap
+- Theoretical results in @calonico2014robust can be directly applied to analyze fuzzy RDD and kink
+\pause
+- @card2015inference first introduce kink and fuzzy kink designs into econometrics.
+\pause
+- @cattaneo2016interpreting and @cattaneo2020extrapolating discuss RDD with multiple cutoffs and their extrapolation.
+\pause
+- @kolesar2018inference solve the problem of inference in RDD with a discrete running variable.
+\pause
+- @cattaneo2015randomization suggest the perspective of local randomization for RDD.
+\pause
+- @imbens2019optimized and @eckles2020noise develop the perspective of noise-induced randomization.
+
+
+# Set up
+- We possess a dataset with $N$ units. 
+\pause
+- We observe $(Y_i, D_i, Z_i)$ for each unit $i$, $i \in \{1,2,\dots,N\}$.
+- $Z_i$ is called the running variable with density $f(z)$, which decides the value of the binary treatment $D_i$.
+\pause
+- There exists a cutoff $c$ (often set to be 0) such that $D_i = \mathbf{1}\{Z_i \geq c\}$.
+\pause
+- The causal parameter of interest, $\tau_{SRD}$, is defined as
+$$
+\mathbb{E}[Y_i(1) - Y_i(0) | Z_i = c]. 
+$$
+\pause
+- Notice that the causal parameter is a local one by definition.
+
+# Identification
+- Identification in the classic RDD relies the assumption of continuity [@hahn2001identification].
+\pause
+- Define $\mu(z) = \mathbb{E}[Y_i | Z_i = z]$, $\mu_{+} = \lim_{z \rightarrow c^+}\mu(z)$, and $\mu_{-} = \lim_{z \rightarrow c^-}\mu(z)$.
+\pause
+- Obviously, if $\mu_{+} = \mathbb{E}[Y_i(1) | Z_i = c]$ and $\mu_{-} = \mathbb{E}[Y_i(0) | Z_i = c]$, then
+$$
+\tau_{SRD} = \mu_{+} - \mu_{-}.
+$$
+\pause
+- All we need to do is to estimate $\mu_{+}$ and $\mu_{-}$.
+
+
+# Ideal experiment behind RDD
+- Intuitively, the assumption of continuity requires that all the confounders (observable or not) vary smoothly around the cutoff $c$.
+\pause
+- We can treat RDD as a random assignment in the block defined by $Z_i = c$.
+\pause
+- Suppose there are 1,000 congressional elections, in all of which both candidates win 50\% of all votes.
+\pause
+- We then randomly select a winner for each election with a coin flip, which implies that $D_i \perp \{Y_i(1), Y_i(0)\} | Z_i = c$.
+\pause
+- The difference in the outcome reflects the impact of the winner's attributes (e.g party affiliation).
+
+# Ideal experiment behind RDD
+- Unfortunately, we do not have that many elections with a 50-50 split in practice.
+\pause
+- All we can do is to approximate the two limits using data at hand.
+\pause
+- The RDD estimate is thus biased by definition.
+\pause
+- Yet the bias diminishes to zero as we have a larger sample, which usually leads to a smaller bandwidth.
+\pause
+- In other words, we approach the ideal experiment as sample size increases.
+\pause
+- Remember that we need extra structural assumptions (continuity) for the trick to work.
+
+# Estimation
+- To estimate $\mu_{+}$ and $\mu_{-}$, the most common choice is local regression.
+\pause
+- Suppose we have selected a bandwidth $h$, we just need to fit kernelized regression within the windows $[c-h, c]$ and $[c, c+h]$:
+$$
+\begin{aligned}
+& (\hat \mu_{+}, \hat \beta_{+}) \\
+= & \arg \min_{\alpha, \beta} \sum_{i=1}^N \mathbf{1}\{Z_i \geq c\}\left(Y_{i} - \mu - \beta (Z_i-c)\right)^2\mathbf{K}\left(\frac{Z_i-c}{h_{N}}\right)
+\end{aligned}
+$$
+- $(\hat \mu_{-}, \hat \beta_{-})$ are similarly estimated.
+\pause
+- Then,
+$$
+\hat\tau_{SRD} = \hat \mu_{+} - \hat \mu_{-}.
+$$
+
+
+# Estimation
+- The two regressions are local since we apply the kernel weights.
+\pause
+- Intuitively, observations that are closer to the cutoff should receive a larger weight.
+\pause
+- There are multiple choices for the kernel.
+\begin{figure}[!ht]
+\centering
+\includegraphics[width = .8\textwidth]{Kernels.png}
+\end{figure}
+
+# Estimation in practice
+- In practice, some scholars select the bandwidth using an existent algorithm and then manually fit two regressions within the selected window.
+\pause
+- What is the problem of this approach?
+\pause
+- It is inconsistent with the bandwidth selector and often leads to larger biases.
+\pause
+- One may add higher order terms of $(Z_i-c)$ into the regressions.
+\pause
+- But for sharp RDD, linear regression has the optimal rate of convergence due to its nice performance on the boundary [@porter2003estimation].
+
+# Estimation in practice
+- Never fit global polynomials to estimate the two intercepts [@gelman2019high].
+\pause
+- We are interested in local quantities rather than global fitness.
+\pause
+- Estimates of the intercepts may be driven by points that are far away from the cutoff if you use global polynomials.
+\pause
+- It is always critical to draw plots in RDD.
+\pause
+- The result would not be convincing if we cannot see the jump of the outcome variable from the plot.
+
+# Test the assumption of continuity
+- As the assumption of continuity is crucial for identification in RDD, we should test its validity in practice.
+\pause
+- A popular approach is the placebo test: variables that are not affected by the treatment should change smoothly over the cutoff.
+- For example, we can run the estimator for a covariate $X$ to see whether the result is significant.
+\pause
+- See @meyersson2014islamic for examples
+
+
+# Test the assumption of continuity
+- The assumption is violated if units in the sample self-select into one side of the cutoff.
+\pause
+- For example, students may cheat to meet the requirement of a scholarship.
+- As a result, the density function $f(z)$ will not change smoothly across the cutoff. 
+\begin{figure}[!ht]
+\centering
+\includegraphics[width = .8\textwidth]{MC_2008.jpg}
+\end{figure}
+
+# Test the assumption of continuity
+- @mccrary2008manipulation develop the first formal test of the discontinuity in density.
+\pause
+- Essentially, we are testing whether
+$$
+\theta = \ln \lim_{z \rightarrow 0^+}f(z) - \ln \lim_{z \rightarrow 0^-}f(z)
+$$
+has a significant deviation from 0.
+\pause
+- Similarly, we need to estimate the two boundary points of $\ln f(z)$ using local regression (notice that $Y_i$ is not needed).
+\pause
+- @cattaneo2020simple provide an augmented algorithm for non-parametric density estimation.
+
+# An example
+- We will work with the Meyersson (2014) paper: ``Islamic Rule and the Empowerment of the Poor and the Pious''
+- The paper shows a (local) result: the victory of Islamic parties in Turkey resulted in better outcomes for women.
+- Running variable: the difference in vote share between the largest Islamic party and the largest secular party (not two party)
+- Outcome that we'll look at: high school education
+
+# Set up the data
+\footnotesize
+```{r 7-data-setup, message=FALSE, echo=FALSE, warning=FALSE}
+require(foreign,quietly=TRUE)
+d <- read.dta("regdata0.dta")
+summary(d$iwm94) 
+```
+
+# Estimation
+\footnotesize
+```{r 7-estimation, message=FALSE, echo=FALSE, warning=FALSE}
+#install.packages("rdrobust")
+require(rdrobust, quietly=TRUE)
+rd.out <- rdrobust(d$hischshr1520f, d$iwm94)
+```
+
+\tiny
+```{r 7-full-results, message=FALSE, echo=FALSE, warning=FALSE}
+summary(rd.out)
+```
+
+# Plot it
+```{r 7-plot-it,fig.cap='', message=FALSE, warning=FALSE}
+rdplot(d$hischshr1520f, d$iwm94, p = 4)
+```
+
+# Placebo tests
+- Do placebo tests on other covariates and other outcomes.
+\footnotesize
+```{r 7-placebos, message=FALSE, echo=FALSE, warning=FALSE}
+# Age 19+
+rdrobust(d$ageshr19, d$iwm94)[c("coef","se")]
+```
+
+# Placebo plot
+```{r 7-plot-it-placebo,fig.cap='', message=FALSE, echo=FALSE, warning=FALSE}
+rdplot(d$ageshr19, d$iwm94, p = 4)
+```
+
+# More Placebos
+\footnotesize
+```{r 7-more-placebos1, message=FALSE, echo=FALSE, warning=FALSE}
+# Men in 2000
+rdrobust(d$hischshr1520m, d$iwm94)[c("coef","se")]
+# Women in 1990 (pre-treatment)
+rdrobust(d$c90hischshr1520f, d$iwm94)[c("coef","se")]
+# Men in 1990 (pre-treatment)
+rdrobust(d$c90hischshr1520m, d$iwm94)[c("coef","se")]
+```
+
+# Sorting
+- Density tests are also a good way to examine the possibility of sorting.
+\footnotesize
+```{r 7-dcd, message=FALSE, echo=FALSE, warning=FALSE}
+require(rddensity)
+rd_density <- rddensity(d$iwm94) #null is no sorting
+summary(rd_density)
+```
+
+# Density Plot
+\footnotesize
+```{r 7-dcd-plot,fig.cap='', message=FALSE, warning=FALSE}
+rdplotdensity(rd_density, d$iwm94)
+```
+
+# Kink
+\footnotesize
+```{r 7-kink-estimation, message=FALSE, echo=FALSE, warning=FALSE}
+#install.packages("rdrobust")
+require(rdrobust, quietly=TRUE)
+kink.out <- rdrobust(d$hischshr1520f, d$iwm94, deriv = 1)
+```
+
+\tiny
+```{r 7-kink-full-results, message=FALSE, echo=FALSE, warning=FALSE}
+summary(kink.out)
+```
+
+# Bias of RDD estimation
+- Let's introduce some notations for deriving the bias of RDD estimation.
+- Denote $(Y_1, Y_2, \dots, Y_N)$ as $\mathbf{Y}$, $(Z_1, Z_2, \dots, Z_N)$ as $\mathbf{Z}$, and
+$$
+\begin{aligned}
+& \mathbf{R} = (\iota, \mathbf{Z}) \\
+& \mathbf{W}_{+} = \{\mathbf{1}\{Z_i \geq c\}K \left(\frac{Z_i-c}{h_{N}}\right)\}_{N\times N} \\
+& \mathbf{M} = \left(\mu(Z_1), \mu(Z_2), \dots, \mu(Z_N)\right)'
+\end{aligned}
+$$
+where $\iota$ is a vector with $N$ 1s and $\mathbf{W}$ is a diagonal matrix of weights.
+- We use $\mu_{+}^{(k)}$ to denote the $k$-th order derivative of $\mu_{+}$ (similar for $\mu_{-}$) and $\sigma^2(z)$ to denote $Var[Y_i | Z_i = z]$.
+
+# Bias of RDD estimation
+- Notice that $\mathbf{Y} = \mathbf{M} + \mathbf{e}$.
+\pause
+- The estimate $\hat \mu_{+}$ equals to the first row of
+$$
+\begin{aligned}
+& (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}(\mathbf{R}'\mathbf{W}_{+}\mathbf{Y}) \\
+= & (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}(\mathbf{R}'\mathbf{W}_{+}\mathbf{M}) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}(\mathbf{R}'\mathbf{W}_{+}\mathbf{e})
+\end{aligned}
+$$
+\pause
+- Expectation of the second term is zero and we have the Taylor expansion for $\mu(Z_i)$:
+$$
+\mu(Z_i) = \mu_{+} + \mu^{(1)}_{+}(0)Z_i + \frac{\mu^{(2)}_{+}(0)}{2}Z_i^2 + \nu_i
+$$
+\pause
+- Hence,
+$$
+\mathbf{M} = \mathbf{R}\begin{pmatrix}\mu_{+} \\ \mu^{(1)}_{+}(0) \end{pmatrix} + \mathbf{S}_2\frac{\mu^{(2)}_{+}(0)}{2} + \nu
+$$
+where $\mathbf{S}_2 = (Z_1^2, Z_2^2, \dots, Z_N^2)$ and $\nu = (\nu_1, \nu_2, \dots, \nu_N)$.
+
+# Bias of RDD estimation
+- Now, the estimation bias of $\hat \mu_{+}$, $\mathbb{E}[\hat \mu_{+}] - \mu_{+}$, is the first row of
+$$
+\begin{aligned}
+& \mu^{(1)}_{+}(0) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\mathbf{S}_2\frac{\mu^{(2)}_{+}(0)}{2}\right) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\nu\right) \\
+\end{aligned}
+$$
+\pause
+- The convergence rates of these two terms rely on the properties of the kernel.
+\pause
+- Via some cumbersome calculation, we can see that
+$$
+\mathbb{E}[\hat \mu_{+}] - \mu_{+} = C_1\mu^{(2)}_{+}(0)h^2 + o_p(h^2)
+$$
+
+
+# Bias of RDD estimation
+- We can similarly derive the variance of $\hat \mu_{+}$ using the properties of regression:
+$$
+\mathbb{V}[\hat \mu_{+}] = \frac{C_2}{Nh}\frac{\sigma^2_{+}(0)}{f_{+}(0)} + o_p(\frac{1}{Nh})
+$$
+\pause
+- Obviously, the bias and the variance of $\hat \mu_{-}$ have similar forms.
+\pause
+- More generally, we can estimate the $k$-th order derivative of $\mu_{+}$ and $\mu_{-}$ with a $p$-th order local regression.
+- The bias will be of order $p+1$.
+
+# Bandwidth selection for optimizing MSE
+- Before @imbens2012optimal, the practice is to minimize the regression's MSE on the entire support using cross-validation.
+\pause
+- @imbens2012optimal argue that we should select a bandwidth to minimize the MSE of estimation:
+$$
+\begin{aligned}
+MSE(h_N) = & \mathbb{E}\left[\hat\tau_{SRD} - \tau_{SRD} | \mathbf{Z}\right]^2 \\
+= & \left(\mathbb{E}\left[\hat\tau_{SRD}  | \mathbf{Z}\right]- \tau_{SRD}\right)^2 + Var\left[\hat\tau_{SRD} | \mathbf{Z}\right] \\
+= & Bias^2 + Variance.
+\end{aligned}
+$$
+
+
+# Bandwidth selection for optimizing MSE
+- @imbens2012optimal show that in practice we can minimize the asymptotic MSE:
+$$
+\begin{aligned}
+AMSE(h_N) = & C_1 h_N^4\left(\mu_{+}^{(2)}(0) - \mu_{-}^{(2)}(0)\right)^2 + \frac{C_2}{Nh_N}\frac{\sigma^2(0)}{f(0)}
+\end{aligned}
+$$
+\pause
+- From the expression we can solve the optimal bandwidth:
+$$
+h_{N}^{*} = C\left(\frac{\frac{\sigma^2(0)}{f(0)}}{\left(\mu_{+}^{(2)}(0) - \mu_{-}^{(2)}(0)\right)^2}\right)^{\frac{1}{5}}N^{-\frac{1}{5}}.
+$$
+\pause
+- In practice, we can estimate $h_{N}^{*}$ with a plug-in estimator.
+
+
+# Bias correction
+- @imbens2012optimal do not prove the asymptotic normality of the RDD estimate.
+\pause
+- @calonico2014robust study the asymptotic distribution of the studentized RDD estimate: 
+$$
+\frac{\hat\tau_{SRD} - \tau_{SRD}}{\sqrt{\mathbb{V}[\hat\tau_{SRD}]}}.
+$$
+\pause
+- They show that the bandwidth selected via the previous algorithm is too wide to guarantee the the asymptotic normality of the studentized estimate.
+\pause
+- We need $h_{N} = o_p(N^{-\frac{1}{5}})$ while the algorithm leads to $h_{N} = O_p(N^{-\frac{1}{5}})$.
+\pause
+- Consequently, the studentized estimate will be asymptotically biased.
+
+# Bias correction
+- Intuitively, 
+$$
+\frac{\hat\tau_{SRD} - \tau_{SRD}}{\sqrt{\mathbb{V}[\hat\tau_{SRD}]}} = \frac{\hat\tau_{SRD} - \mathbb{E}[\hat\tau_{SRD}]}{\sqrt{\mathbb{V}[\hat\tau_{SRD}]}} + \frac{\mathbb{E}[\hat\tau_{SRD}] - \tau_{SRD}}{\sqrt{\mathbb{V}[\hat\tau_{SRD}]}}.
+$$
+\pause
+- The first term is a weighted average of residuals and converges to $N(0,1)$ by CLT.
+\pause
+- We need to guarantee that the second term is $o_p(1)$.
+\pause
+- Remember that the numerator is $O_p(h^2)$ and the denominator is $O_p(\frac{1}{\sqrt{Nh}})$, thus the total bias is $O_p(\sqrt{Nh^5})$.
+
+# Bias correction
+- @calonico2014robust provide a bias-correction estimator $\hat\tau_{SRD}^{bc}$.
+\pause
+- Intuitively, we use another local regression estimator with bandwidth $b_N$ to estimate the first-order derivative of $\mu_{+}$ and $\mu_{-}$ and subtract them from $\hat \mu_{+}$ and $\hat \mu_{-}$.
+\pause
+- Of course, bias correction introduces extra uncertainty (from the extra local regression) into the estimate, hence the variance has to be adjusted accordingly.
+\pause
+- They propose two variance estimators, one based on regression analysis and the other based on the idea of nearest neighborhood matching [@abadie2006large].
+
+# Bias correction
+- @calonico2014robust prove that 
+$$
+\frac{\hat\tau_{SRD}^{bc} - \tau_{SRD}}{\sqrt{\mathbb{V}[\hat\tau_{SRD}^{bc}]}} \rightarrow N(0,1)
+$$
+as long as $N\min\{b_N^{5}, h_N^{5}\}\max\{b_N^{2}, h_N^{2}\} \rightarrow 0$.
+\pause
+- Now the numerator is $O_p(h^3 + h^2b^2)$ and the denominator is $O_p(\frac{1}{\sqrt{Nh}} + \frac{1}{\sqrt{Nh^4b^5}})$.
+\pause
+- In other words, we can still use the algorithm in @imbens2012optimal to select the bandwidth.
+\pause
+- We just need to modify the obtained estimate to ensure asymptotic normality.
+
+
+# RDD with a discrete running variable
+- The classic theory developed in @calonico2014robust runs into difficulties when the running variable is discrete.
+\pause
+- By definition, there cannot be more observations around the cutoff point as $N$ increases.
+\pause
+- @kolesar2018inference provide a finite-sample confidence interval in this case.
+\pause
+- The CI does not rely on asymptotics and holds for any fixed $N$.
+\pause
+- The intuition is to bound the curvature of $\mu(z)$ and consider the worst scenario.
+
+
+# RDD with a discrete running variable
+- First notice that the local regression estimator is simply a weighted average of the outcome:
+$$
+\hat \tau_{SRD} = \sum_{Z_i \geq 0} \hat \gamma_{+}(Z_i)Y_i - \sum_{Z_i \leq 0} \hat \gamma_{-}(Z_i)Y_i
+$$
+where $\hat \gamma_{i,+}$ and $\hat \gamma_{i,-}$ are weights that are only dependent on $Z$.
+- In particular, if we use the rectangular kernel, we have
+$$
+\hat \gamma_{+}(Z_i) = \frac{\sum_{0 \leq Z_j \leq h_N} Z_j^2 - Z_i\sum_{0 \leq Z_j \leq h_N} Z_j}{\sum_{0 \leq Z_j \leq h_N} Z_j^2 - (\sum_{0 \leq Z_j \leq h_N} Z_j)^2/N^*}.
+$$
+where $N^* = \# \{j: 0 \leq Z_j \leq h_N\}$.
+
+# RDD with a discrete running variable
+- Let's assume that $|\mu^{(2)}(z)| \leq C$, then the bias of $\hat\tau_{SRD}$ is bounded by
+$$
+B = C\sum_{i=1}^N \lvert \hat \gamma_{+}(Z_i) + \hat \gamma_{-}(Z_i)\rvert Z_i^2
+$$
+\pause
+- @kolesar2018inference show that the one-sided CI of $\hat\tau_{SRD}$ has the form $[\hat c, \infty]$, where
+$$
+\hat c = \hat\tau_{SRD} - B - z_{1-\alpha}\sqrt{\mathbb{V}[\hat\tau_{SRD}]}
+$$
+\pause
+- Comparing the result with that from @calonico2014robust, the only difference is that we need to bound the bias using the "smooth parameter" $C$.
+\pause
+- The problem here leads to some novel perspectives to understand RDD.
+
+<!-- # RDD in panel data -->
+<!-- - Suppose a policy shock is imposed on all units in a sample. -->
+<!-- - We observe the outcomes of each unit at a high frequency. -->
+<!-- - Can we treat time as the running variable and apply RDD to estimate the causal effect? -->
+
+# RDD as local randomization
+- We have discussed that the classic RDD can be seen as a simple experiment when $Z = 0$.
+\pause
+- Yet the conventional analysis is not a design-based approach as we do not try to model the assignment process.
+\pause
+- A recent perspective treats RDD as an experiment that is implemented where $Z \in [-h, h]$.
+\pause
+- If we know $h$, classic approaches (regression, weighting, matching, etc.) can be applied to estimate the treatment effect.
+\pause
+- @cattaneo2015randomization suggest that we should find $h$ by balancing all the covariates.
+\pause
+- The perspective is criticized by @eckles2020noise: if the treatment is randomly assigned on $[-h, h]$, then $\mu(z)$ should be constant on the interval.
+
+
+# RDD as noise-induced randomization
+- @eckles2020noise argue that $Z$ should be seen as a noisy measure of the true confounder $U$.
+\pause
+- For example, $U_i$ is one's true capability and $Z_i$ is her test score.
+\pause
+- We assume the measurement error is normally distributed
+$$
+Z_i|U_i \sim \mathcal{N}(U_i, \nu^2)
+$$
+and conditionally independent to the potential outcomes
+$$
+\{Y_i(1), Y_i(0)\} \perp Z_i | U_i 
+$$
+\pause
+- The assumptions imply that
+$$
+\{Y_i(1), Y_i(0)\} \perp D_i | U_i 
+$$
+and the only issue is that $U_i$ is unobservable.
+
+# RDD as noise-induced randomization
+- @eckles2020noise claim that it is possible to estimate the causal effect using the noisy measure $Z_i$.
+\pause
+- Remember that when the confounders are observable, all we need to do is to balance the confounders across treatment groups.
+\pause
+- Now the confounder is unobservable, hence we should balance a functional $f$ of its noisy measure $Z_i$.
+\pause
+- $Z_i$ contains information of $U_i$ and we know their relationship.
+\pause
+- If $f(Z_i)$ is balanced and $f$ is properly chosen, we expect $U_i$ to be balanced as well.
+\pause
+- Essentially, we are learning the information of unobservables from observable variables.
+\pause
+- This is an idea called "manifold learning."
+
+# RDD as noise-induced randomization
+- @eckles2020noise also focus on estimators with the following form:
+$$
+\hat \tau_{SRD} = \sum_{Z_i \geq 0} \hat \gamma_{+}(Z_i)Y_i - \sum_{Z_i \leq 0} \hat \gamma_{-}(Z_i)Y_i
+$$
+\pause
+- $\hat \gamma_{i,+}$ and $\hat \gamma_{i,-}$ need to balance the confounder $U_i$, thus we require
+$$
+\begin{aligned}
+& \int_{-\infty}^0 \hat \gamma_{-}(z)dF(z) = 1, \int_{0}^{\infty} \hat \gamma_{+}(z)dF(z) = 1 \\
+& \Biggl\lvert\int_{-\infty}^0 \hat \gamma_{-}(z) \phi(z|u) dz - \int_{0}^{\infty} \hat \gamma_{+}(z)\phi(z|u) dz \Biggr\rvert \leq t \text{ for all } u
+\end{aligned}
+$$
+\pause
+- Note that the classic local regression estimator is a special case of $\hat \tau_{SRD}$ where the weights are estimated based on OLS.
+
+
+# RDD as noise-induced randomization
+- Nevertheless, the regression weights are not optimal for the MSE $\mathbb{E}[\hat \tau_{SRD} - \tau_{SRD}]^2$.
+\pause
+- @eckles2020noise suggest that researchers should directly minimize the MSE under the constraints above:
+$$
+\begin{aligned}
+& \hat \gamma_{+}(), \hat \gamma_{-}() \\
+= & \arg \max_{\gamma_{+}, \gamma_{-}} \left[ \frac{\sigma^2}{N} \left(\int_{-\infty}^0 \hat \gamma_{-}^{2}(z) dF(z) + \int_{0}^{\infty} \hat \gamma_{+}^2(z)dF(z)\right) + \frac{t^2}{M^2}\right]
+\end{aligned}
+$$
+where $\sigma^2 = Var[Y_i | Z_i]$ and $M$ is a constant.
+\pause
+- It is a standard convex optimization problem and can be easily solved in statistical software.
+\pause
+- @eckles2020noise show that the studentized $\hat \tau_{SRD}$ is asymptotically normal.
+
+# RDD as noise-induced randomization
+- The approach in @eckles2020noise is purely design-based and requires no assumption on the smoothness of the regression function.
+\pause
+- It applies to cases with either a continuous running variable or a discrete running variable.
+\pause
+- Inference is also straightforward in this method.
+\pause
+- However, it requires the knowledge of the measurement error, which might be unrealistic in practice.
+\pause
+- The future direction is to learn the conditional distribution from data.
+
+# References {.allowframebreaks} 
+
