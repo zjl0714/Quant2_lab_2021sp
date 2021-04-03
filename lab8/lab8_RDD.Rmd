@@ -312,7 +312,7 @@ where $\mathbf{S}_2 = (Z_1^2, Z_2^2, \dots, Z_N^2)$ and $\nu = (\nu_1, \nu_2, \d
 - Now, the estimation bias of $\hat \mu_{+}$, $\mathbb{E}[\hat \mu_{+}] - \mu_{+}$, is the first row of
 $$
 \begin{aligned}
-& \mu^{(1)}_{+}(0) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\mathbf{S}_2\frac{\mu^{(2)}_{+}(0)}{2}\right) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\nu\right) \\
+& (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\mathbf{S}_2\frac{\mu^{(2)}_{+}(0)}{2}\right) + (\mathbf{R}'\mathbf{W}_{+}\mathbf{R})^{-1}\left(\mathbf{R}'\mathbf{W}_{+}\nu\right) \\
 \end{aligned}
 $$
 \pause
@@ -393,7 +393,7 @@ $$
 # Bias correction
 - @calonico2014robust provide a bias-correction estimator $\hat\tau_{SRD}^{bc}$.
 \pause
-- Intuitively, we use another local regression estimator with bandwidth $b_N$ to estimate the first-order derivative of $\mu_{+}$ and $\mu_{-}$ and subtract them from $\hat \mu_{+}$ and $\hat \mu_{-}$.
+- Intuitively, we use another local regression estimator with bandwidth $b_N$ to estimate the second-order derivative of $\mu_{+}$ and $\mu_{-}$ and subtract them from $\hat \mu_{+}$ and $\hat \mu_{-}$.
 \pause
 - Of course, bias correction introduces extra uncertainty (from the extra local regression) into the estimate, hence the variance has to be adjusted accordingly.
 \pause
