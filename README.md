@@ -27,6 +27,21 @@ Before the first lab, please make sure you have R and (the free version of) RStu
 
 ---
 
+## Schedule
+
+- Lab 1: R and Rmarkdow Basics
+- Lab 2: Regression Revisit
+- Lab 3: Introduction to Causal Graph
+- Lab 4: Selection on Observables
+- Lab 5: Inference: finite sample and cluster
+- Lab 6: Instrumental Variable
+- Lab 7: Panel Data 
+- Lab 8: Regression Discontinuity Design 
+
+Further Details T.B.A
+
+---
+
 ## Credits
 
 The lab materials were created, updated, and revised by Antonella Bandiera, Ye Wang, Junlong Aaron Zhou.
