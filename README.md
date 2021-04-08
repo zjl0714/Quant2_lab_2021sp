@@ -37,6 +37,7 @@ Before the first lab, please make sure you have R and (the free version of) RStu
 - Lab 6: Instrumental Variable
 - Lab 7: Panel Data 
 - Lab 8: Regression Discontinuity Design 
+- Lab 9: Mediation Effect and Moderation Effect 
 
 Further Details T.B.A
 
