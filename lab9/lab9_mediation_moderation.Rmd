@@ -284,7 +284,7 @@ where $B$ is the number of blocks.
 - Consequently, tree is highly unstable.
 \pause
 - We may use the evolutionary algorithm to find the optimal tree partition.
-- Or we average over a lot of trees--- boosting or forest.
+- Or we average over a lot of trees--- boosting (boosting tree) or bagging (forest).
 
 # Causal tree
 - To study HTE, we can divide observations into the blocks to optimize our prediction of the treatment effect.
@@ -352,9 +352,9 @@ abline(coef = c(0, 1), lty = 2)
     - Double machine learning in Belloni et al. (2017).
      
 # T-learner vs. S-learner
-- All the previous methods run on the whole sample (S-learner).
+- All the previous methods run on the whole sample.
 - We can fit separate models for the treatment group and control group (T-learner).
-- A popular approach is BART (Bayesian Additive Regression Trees, an S-learner).
+- A popular approach is BART (Bayesian Additive Regression Trees, an S-learner, treating treatment as a covariate).
 - It is a Bayesian approach and the CIs are generated from the posterior.
 - The T-learner is less stable as two response surfaces are fitted separately.
 
