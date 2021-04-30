@@ -1,0 +1,221 @@
+---
+title: "Quant II"
+subtitle: "Lab 11: Interference"
+author: "Junlong Aaron Zhou"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+    beamer_presentation:
+        theme: "CambridgeUS"
+        colortheme: "beaver"
+        fig_width: 5
+        fig_height: 3 
+header-includes: \input{../teX-preamble/preamble}
+---
+
+
+# Outline 
+- Interference
+    - Interference with known structure
+    - General interference
+    - Random network
+- Contagion
+ 
+# When SUTVA fails
+- One of the pioneering works in this field is Manski (1993).
+- A linear-in-means model:
+$$
+Y_i = \alpha + \beta\frac{\sum_{j \in P} Y_j}{n_i} + \gamma X_i + \delta\frac{\sum_{j \in P} X_j}{n_i} + \varepsilon_i.
+$$
+\pause
+- $\beta$: Endogenous effect; $\delta$: Exogenous effect.
+- In addition, $\varepsilon_i$ may not be independent to each other due to homophily.
+\pause
+- Many econometric works are based on this framework (e.g. Bramoullé et al., 2009; Graham, 2014).
+- The model can be arbitrarily complicated: dynamics, spatial autoregression, network formation, etc.
+
+# When SUTVA fails
+- The outcome-based approach provides a conceptual benchmark.
+- When the treatment of others matters: interference.
+- When the outcome of others matters: contagion.
+- Homophily is often an important source of confounding.
+- Challenge: how could we ensure the correctness of the outcome model?
+\pause
+- We can defend the model via structural approaches.
+- Or we can switch to the design-based perspective.
+
+# Interference with known structure
+- We assume that the treatment is randomly assigned.
+- We possess the knowledge of the "social network" among individuals.
+- $i$'s treatment affects $j$'s outcome if and only if there is a tie between them in the network.
+\pause
+- Partial interference: all units in the same stratum are connected, but no connection between strata.
+- Aronow and Samii (2017): with the network we can construct "exposure mapping."
+- The network is actually a moderator: $D_i \mapsto W_i$.
+
+# Interference with known structure
+- The network allows us to draw the DAG.
+- Then everything is identifiable.
+- van de Laan (2014) and Ogburn et al. (2018): a general framework to deal with spillover effects in dynamic social networks.
+\pause
+- The more challenging part is inference.
+- We cannot assume that everyone is connected to everyone else.
+- Then there is only one observation, $N=1$.
+- We have to assume that the spillover is somehow "local."
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(igraph)
+library(igraphdata)
+library(interference)
+data(USairports)
+agraph <- as.undirected(USairports)
+amat <- as_adj(agraph, sparse=FALSE)
+igraph::write_graph(agraph, './airports_undirected.csv', format='edgelist')
+outcomes <- make_dilated_out(amat, make_corr_out, seed=0, hop=1, multipliers=NULL)
+tr_vector <- make_tr_vec_permutation(nrow(amat),0.2,R=1,seed=4224)
+exposure <- make_exposure_map_AS(amat, tr_vector, hop=1) 
+obs_outcome <- rowSums(exposure*t(outcomes))
+vars <- data.frame(id=1:755, treatment=tr_vector[1,], y=obs_outcome)
+fwrite(vars, './airports_vars_hop1.csv')
+# outcomes <- make_dilated_out(amat, make_corr_out, seed=0, hop=2, multipliers=NULL)
+# exposure <- make_exposure_map_AS(amat, tr_vector, hop=2) 
+# obs_outcome <- rowSums(exposure*t(outcomes))
+# vars <- data.frame(id=1:755, treatment=tr_vector[1,], y=obs_outcome)
+# fwrite(vars, './airports_vars_hop2.csv')
+network <- read_graph('./airports_undirected.csv', format='edgelist', directed=FALSE)
+adj_matrix <- as_adj(network, sparse=FALSE)
+diag(adj_matrix) <- 0
+vars <- read.csv('./airports_vars_hop1.csv')
+non_isolates <- which(rowSums(adj_matrix)>0)
+adj_matrix <- adj_matrix[non_isolates, non_isolates]
+vars <- vars[vars$id %in% non_isolates,]
+num_replicates <- 1500
+prop_treated <- 0.2
+N <- nrow(adj_matrix)
+potential_tr_vector <- make_tr_vec_permutation(N, p=prop_treated, R=num_replicates, seed=4224)
+exposure <- make_exposure_map_AS(adj_matrix, vars$treatment, hop=1) 
+obs_prob_exposure <- make_exposure_prob(potential_tr_vector, adj_matrix, make_exposure_map_AS, list(hop=1))
+my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, hop=1) 
+```
+
+# Interference with known structure
+```{r echo=FALSE, fig.height=7, fig.width=7}
+plot(network, vertex.label.cex = 0.4, vertex.color = "red", vertex.frame.color = "red", 
+     edge.color = "gray", edge.width = .4, vertex.size = 0.4, edge.arrow.size = .2)
+```
+
+# Interference with known structure
+```{r, echo=FALSE}
+# Horvitz-Thompson estimatorS
+my_estimates$tau_ht
+
+# Variance
+my_estimates$var_tau_ht
+```
+
+# General interference
+- But knowing the network is often a very strong assumption.
+- Egami (2019): sensitivity analysis for the network's misspecification.
+- Recent works proceed under the framework of "general interference."
+- There are two questions we are interested in:
+    - Is it still possible to estimate the ATE?
+    - How can we estimate the interference effect?
+
+# General interference
+- For the first question, the answer is yes under some conditions (Aronow, Hudgen and Savje, 2019; Chin, 2017).
+- We require the average "perturbation" from changing the treatment status of one unit to be small.
+- Notice that the ATE is no longer well-defined, so the limit is actually EATE:
+$$
+\tau^{*} = \frac{1}{N} \sum_{i=1}^N \tau_i = \frac{1}{N} \sum_{i=1}^N \left[Y_i(1, \mathbf{Z}_{-i}) - Y_i(0, \mathbf{Z}_{-i})\right]
+$$
+$$
+\tau = E_{\mathbf{Z}_{-i}} \tau^{*} = \frac{1}{N} \sum_{i=1}^N \left[E_{\mathbf{Z}_{-i}}Y_i(1, \mathbf{Z}_{-i}) - E_{\mathbf{Z}_{-i}}Y_i(0, \mathbf{Z}_{-i})\right]
+$$
+
+# General interference
+- For the second question, there is rapid progress in recent years.
+- Aronow, Samii and Wang (2020): As the design is known, we can aggregate the individualistic effects in arbitrary ways.
+- In spatial experiments, it is natural to do it by distance.
+- Just draw circles at each distance $d$ and apply the IPW estimator.
+- Inference relies on Stein's method.
+ 
+# General interference
+- Wang (2020): the same idea works in TSCS dataset under the assumption of sequential ignorability.
+- Researchers have to trade off two sources of confounding: fixed effects vs. interference.
+- Papadogeorgou et al. (2020): modeling treatment point process as a stochastic intervention strategy.
+- They examine the effect of airstrike in Iraq on rebellions.
+
+
+# Within-unit interference
+- Interference is also a big problem in TSCS data analysis.
+- It is not surprising that the treatment in period $t-1$ affects the outcome in period $t$.
+- Then the assumption behind the two-way fixed effects model will be violated (no carryover).
+- What can we do?
+\pause
+- If we are fine with abandoning the unit fixed effects: just estimate a MSM.
+- Or we have to add more variables into the regression and hope the model is correct.
+- A special case is staggered adoption (Strezhnev, 2019; Liu, Wang and Xu, 2020).
+
+
+# Random network
+- All these approaches assume that there is a fixed network and the intervention is at random.
+- Another possibility is that the assignment is pre-specified but the network is randomly generated.
+- Li et al. (2019)
+\begin{center}
+\includegraphics[width=.8\linewidth, height=.7\linewidth]{random_network.jpg}
+\end{center}
+
+# Random network
+- A study using random dorm assignment in Peking University.
+- Does living with IMO medalists boost your GPA?
+- Notice that this is interference not contagion.
+- A design-based approach to understand peer effect in dorms.
+\pause
+- Two assumption on "local interference:"
+    - Partial interference
+    - Only attributes matter, not identities
+- They propose a Horvitz-Thompson estimator, and prove that it is equivalent to a regression with interaction.
+
+# Random network
+\begin{center}
+\includegraphics[width=.8\linewidth, height=.7\linewidth]{PKU_result.jpg}
+\end{center}
+- They also discuss the optimal assignment.
+\pause
+- Let champions play with champions...
+
+# Network formation
+- A relevant question is whether interference affects the network's structure.
+- There is a large literature on network formation in social network analysis.
+- A familiar approach is to fit a two-way fixed effects model:
+$$
+Y_{ij} = \mu + \alpha_i + \zeta_j + \beta X_{ij} + \varepsilon_{ij}
+$$
+- You can further add the time dimension into the model.
+- No design-based approaches yet.
+
+# Contagion
+
+- The peril of peer effects (Angrist, 2011)
+\pause
+- Can you regression your GPA on the average GPA of your dorm?
+\pause
+- Can you regression your GPA on the average GPA of your roommates?
+\pause
+- Fowler and Christakis: peer effect of obesity.
+\pause
+- Egami (2019): a causal framework using static DAG.
+- He also has a placebo test on the identification assumption and a debiased estimator.
+\pause
+- Imai and Jiang (2020) presents it in a meadiatio framework
+
+
+# Contagion
+\begin{center}
+\includegraphics[width=.8\linewidth, height=.7\linewidth]{Naoki.jpg}
+\end{center}
+
+# Suggested Readings
+
+- For an overview of the interference lecture: [Aronow, Peter; Dean Eckles, Cyrus Samii & Stephanie Zonszein. (2020). “Spillover Effects in Experimental Data.” In James Druckman & Donald Green, Eds. Advances in Experimental Political Science. Cambridge: Cambridge University Press](https://arxiv.org/abs/2001.05444)
+
+- also its reference. 
