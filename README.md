@@ -38,10 +38,7 @@ Before the first lab, please make sure you have R and (the free version of) RStu
 - Lab 7: Panel Data 
 - Lab 8: Regression Discontinuity Design 
 - Lab 9: Mediation Effect and Moderation Effect 
-- Lab 10: Multiple Testing and Missing Data
-
-Furture 
-
+- Lab 10: Multiple Testing and Missing Data 
 - Lab 11: Interference
 - Lab 12: Machine Learning and generalization
 
