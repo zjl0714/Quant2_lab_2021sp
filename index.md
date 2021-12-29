@@ -1,37 +1,46 @@
-## Welcome to GitHub Pages
+# Quant II Lab, NYU, 2021 Spring
 
-You can use the [editor on GitHub](https://github.com/zjl0714/Quant2_lab_2021sp/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+**Instructor: Cyrus Samii**
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+**TA: [Junlong Aaron Zhou](http://www.zhoujunlong.com)**
 
-### Markdown
+*This Repo is publicly available* 
+ 
+## Syllabus
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Lab materials will be uploaded here prior to each lab session.
 
-```markdown
-Syntax highlighted code block
+Before the first lab, please make sure you have R and (the free version of) RStudio (https://rstudio.com) on your machine.
+ 
+## Lab info
 
-# Header 1
-## Header 2
-### Header 3
+- Fridays 12:30pm-2:30am EST
+- Zoom Meeting
+ 
 
-- Bulleted
-- List
+## TA office hours
 
-1. Numbered
-2. List
+- Mondays 4:00pm-6:00pm EST
+- Tuesdays 9:00am-10:00am EST
+- Book a time slot (no more than two consecutive slots) [[here](https://calendly.com/jlzhou/15min)]
+ 
+## Schedule
 
-**Bold** and _Italic_ and `Code` text
+- Lab 1: R and Rmarkdow Basics
+- Lab 2: Regression Revisit
+- Lab 3: Introduction to Causal Graph
+- Lab 4: Selection on Observables
+- Lab 5: Inference: finite sample and cluster
+- Lab 6: Instrumental Variable
+- Lab 7: Panel Data 
+- Lab 8: Regression Discontinuity Design 
+- Lab 9: Mediation Effect and Moderation Effect 
+- Lab 10: Multiple Testing and Missing Data 
+- Lab 11: Interference
+- Lab 12: Machine Learning and generalization
 
-[Link](url) and ![Image](src)
-```
+---
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+## Credits
 
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/zjl0714/Quant2_lab_2021sp/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+The lab materials were created, updated, and revised by Antonella Bandiera, Ye Wang, Junlong Aaron Zhou.
