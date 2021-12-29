@@ -1,5 +1,7 @@
 # Quant II Lab, NYU, 2021 Spring
 
+**Instructor: Cyrus Samii**
+
 **TA: [Junlong Aaron Zhou](http://www.zhoujunlong.com)**
 
 *This Repo is publicly available* 
